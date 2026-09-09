@@ -263,4 +263,54 @@ Added usage tracking columns:
 4. **Localization**:
    - Added all necessary translation keys to backend `en.json`, web `en.json`, and mobile `language.json`.
 
+---
 
+## 11. Verified Seller Access Restriction, Header Navigation & Translation Synchronization
+
+1. **Backend Verification Enforcement**:
+   - Updated `SellerPromotionApiController::getPromotionsAnalytics()` and `getPromotionsHistory()`:
+     - When queried directly by a seller (no admin `user_id` query parameter override), enforces that `Auth::user()->is_verified` is true.
+     - Returns a 403 Forbidden response with `['requires_verification' => true, 'is_verified' => false]` if unverified, protecting performance and revenue analytics.
+
+2. **Frontend Web Navigation & Verification Gate**:
+   - **Header User Dropdown Menu (`ProfileDropdown.jsx`)**:
+     - Added `"Promotions Analytics"` item with `TrendUpIcon` directly below `"My Ads"` linking to `/my-promotions`.
+   - **Mobile Drawer Menu (`HomeMobileMenu.jsx`)**:
+     - Added `"Promotions Analytics"` navigation link under `"My Ads"`.
+   - **Profile Route Alias**:
+     - Added `app/[lang]/(profile)/promotions/page.jsx` pointing to `MyPromotions` for clean URL routing.
+   - **Verification Gate (`MyPromotions.jsx`)**:
+     - Inspects `UserData?.is_verified`. If unverified, renders a dedicated `VerificationRequiredCard` showcasing key benefits (tracking sales, monitoring real-time claims, and analyzing boost placements) with CTAs for `"Verify Account Now"` (`/user-verification`) and `"Back to My Ads"` (`/my-ads`).
+
+3. **Mobile App Verification Gate (`seller_promotions_screen.dart`)**:
+   - Evaluates `AppSession.currentUser?.isVerified`.
+   - Prevents unverified users from dispatching API requests to the analytics and history endpoints.
+   - Renders a dedicated `_buildVerificationRequiredView()` featuring verified shield branding, analytics feature highlights, and direct navigation to `Routes.verification` or back to listings.
+
+4. **Multi-Platform Translation Synchronization**:
+   - Fully harmonized all translation keys across:
+     - Backend Admin & APIs: `resources/lang/en.json`
+     - Frontend Web: `lang/locale/en.json`
+     - Flutter Mobile App: `assets/languages/language.json`
+   - Validated JSON schemas and syntactic correctness across all 3 platforms.
+
+---
+
+## 12. Verification Lifecycle State Management & Locked Verification Screens
+
+1. **Backend Integration (`PromotionService`, `SellerPromotionApiController`, `User` Model)**:
+   - Added `verification_request()` relationship to `App\Models\User`.
+   - Updated `PromotionService::checkUserEligibility()` and `getAdPromotionOptions()` to inspect `verification_request->status`.
+   - If verification is pending/resubmitted, APIs return `verification_status: 'pending'` / `'resubmitted'` and specific under-review guidance messages instead of generic unverified warnings.
+   - Updated `SellerPromotionApiController::getAvailablePromotions()` to return `verification_status` for ad promotion eligibility modals.
+
+2. **Frontend Web (`UserVerification.jsx`, `MyPromotions.jsx`, `PromoteAdModal.jsx`, `AddToPromotionModal.jsx`)**:
+   - **Under Review View**: When verification request status is `'pending'` or `'resubmitted'`, the form input fields and upload controls are completely hidden. Displays an amber Under Review clock icon, current review status badge, informational reassurance notice that documents are being audited, and quick navigation links to My Ads or Profile.
+   - **Already Verified View**: When user is verified (`is_verified == true` or status `'approved'`), displays a green verified badge shield, confirmation headline, security notice stating verified details are locked and cannot be modified, and CTAs to Promotions Analytics and My Ads.
+   - **Promotions & Modals Context**: `MyPromotions`, `PromoteAdModal`, and `AddToPromotionModal` display "Verification Request Under Review" badge and a "Check Verification Status" button routing to `/user-verification`.
+
+3. **Flutter Mobile App (`verification_screen.dart`, `verification_introduction.dart`, `seller_promotions_screen.dart`, modals)**:
+   - **Under Review Screen**: `VerificationScreen` fetches `VerificationRequestCubit` and renders `_buildUnderReviewView()` with an amber clock icon, review status badge, explanation notice, and Back to Profile button. No form inputs or submission button are rendered.
+   - **Already Verified Screen**: Renders `_buildVerifiedView()` with verified shield checkmark, verified badge, locked notification, and Back to Profile button.
+   - **Verification Introduction Screen**: Intercepts verified users and redirects directly to the verified status screen.
+   - **Promotions & Modals Context**: `SellerPromotionsScreen`, `PromoteAdBottomSheet`, `AddToPromotionBottomSheet`, and `UserVerificationCard` display under-review badges and "Check Verification Status" actions when status is pending.

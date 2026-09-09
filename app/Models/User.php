@@ -278,6 +278,11 @@ class User extends Authenticatable {
         return $this->hasMany(ReferPointTransaction::class);
     }
 
+    public function verification_request()
+    {
+        return $this->hasOne(VerificationRequest::class, 'user_id');
+    }
+
     public function getEmailAttribute($value)
     {
         if(Auth::guard('sanctum')->check()){

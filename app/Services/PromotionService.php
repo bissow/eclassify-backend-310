@@ -23,9 +23,14 @@ class PromotionService
     {
         // 1. Must be verified
         if (!$user->is_verified) {
+            $vStatus = $user->verification_request?->status ?? 'not_applied';
+            $msg = in_array($vStatus, ['pending', 'resubmitted', 'submitted'])
+                ? __('Your seller verification is currently under review. Once approved, you will be able to add items to promotions and promote ads.')
+                : __('Only verified sellers can add items to promotions and promote ads. Please verify your account first.');
+
             return [
                 'eligible' => false,
-                'message'  => __('Only verified sellers can add items to promotions and promote ads. Please verify your account first.'),
+                'message'  => $msg,
                 'package'  => null,
             ];
         }
@@ -132,7 +137,8 @@ class PromotionService
             ->whereIn('status', ['active', 'pending'])
             ->first();
 
-        if ($existing) {
+        $allowReplace = !empty($data['replace']) || !empty($data['overwrite']);
+        if ($existing && !$allowReplace) {
             throw new Exception(__('This advertisement is already submitted to this promotion.'));
         }
 
@@ -182,7 +188,22 @@ class PromotionService
             $validUntil = $promotion->getEndDateTime();
         }
 
-        return DB::transaction(function () use ($user, $item, $promotion, $userPackage, $promotionalPrice, $discountValue, $discountType, $stockQuantity, $validUntil) {
+        return DB::transaction(function () use ($user, $item, $promotion, $userPackage, $existing, $promotionalPrice, $discountValue, $discountType, $stockQuantity, $validUntil) {
+            if ($existing) {
+                // Update existing promotional submission without deducting quota again
+                $existing->promotional_price = $promotionalPrice;
+                $existing->discount_value = $discountValue;
+                $existing->discount_type = $discountType;
+                $existing->stock_quantity = $stockQuantity;
+                $existing->remaining_stock_quantity = $stockQuantity;
+                $existing->status = 'active';
+                if ($validUntil) {
+                    $existing->valid_until = $validUntil;
+                }
+                $existing->save();
+                return $existing;
+            }
+
             // Increment package used promotions count
             $userPackage->used_promotions_limit++;
             $userPackage->save();
@@ -329,15 +350,22 @@ class PromotionService
         $requiresVerification = !$user->is_verified;
         $requiresPackage = $user->is_verified && (!$hasActivePackage || $totalQuota <= 0);
 
+        $verificationStatus = $user->verification_request?->status ?? ($user->is_verified ? 'approved' : 'not_applied');
+
         $statusMessage = null;
         if ($requiresVerification) {
-            $statusMessage = __('Only verified sellers can promote advertisements. Please verify your account first.');
+            if (in_array($verificationStatus, ['pending', 'resubmitted', 'submitted'])) {
+                $statusMessage = __('Your seller verification is currently under review. Once approved, you will be able to promote this ad.');
+            } else {
+                $statusMessage = __('Only verified sellers can promote advertisements. Please verify your account first.');
+            }
         } elseif ($requiresPackage) {
             $statusMessage = __('Your subscription package does not have promotional credits available. Please subscribe to an active package to promote this ad.');
         }
 
         return [
             'is_verified'           => (bool) $user->is_verified,
+            'verification_status'   => $verificationStatus,
             'requires_verification' => $requiresVerification,
             'requires_package'      => $requiresPackage,
             'has_active_package'    => $hasActivePackage,

@@ -55,6 +55,9 @@ class FeaturedSectionApiController extends BaseApiController
                         'countryRelation:id,name',
                         'countryRelation.translations:id,country_id,language_id,name',
                         'countryRelation.currency:id,country_id,iso_code,symbol,symbol_position',
+                        'active_promotion_items.promotion.campaign',
+                        'active_promotion_items.promotion.translations',
+                        'active_ad_promotions',
                     ])
                     ->getNonExpiredItems();
             };

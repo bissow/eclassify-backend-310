@@ -330,28 +330,28 @@ class AuthApiController extends BaseApiController
 
             if ($provider === 'twilio') {
 
-                $twilioSettings = Setting::whereIn('name', [
-                    'twilio_account_sid',
-                    'twilio_auth_token',
-                    'twilio_my_phone_number',
-                ])->pluck('value', 'name');
+                // $twilioSettings = Setting::whereIn('name', [
+                //     'twilio_account_sid',
+                //     'twilio_auth_token',
+                //     'twilio_my_phone_number',
+                // ])->pluck('value', 'name');
 
-                if ($twilioSettings->count() < 3) {
-                    DB::rollBack();
-                    return ResponseService::errorResponse(__('Twilio settings are missing.'));
-                }
+                // if ($twilioSettings->count() < 3) {
+                //     DB::rollBack();
+                //     return ResponseService::errorResponse(__('Twilio settings are missing.'));
+                // }
 
-                $client = new \Twilio\Rest\Client(
-                    $twilioSettings['twilio_account_sid'],
-                    $twilioSettings['twilio_auth_token']
-                );
+                // $client = new \Twilio\Rest\Client(
+                //     $twilioSettings['twilio_account_sid'],
+                //     $twilioSettings['twilio_auth_token']
+                // );
 
-                try {
-                    $client->lookups->v1->phoneNumbers($toNumber)->fetch();
-                } catch (\Throwable $e) {
-                    DB::rollBack();
-                    return ResponseService::errorResponse(__('Invalid phone number.'));
-                }
+                // try {
+                //     $client->lookups->v1->phoneNumbers($toNumber)->fetch();
+                // } catch (\Throwable $e) {
+                //     DB::rollBack();
+                //     return ResponseService::errorResponse(__('Invalid phone number.'));
+                // }
 
                 $otp = rand(100000, 999999);
                 $expireAt = now()->addMinutes(10);
@@ -365,10 +365,15 @@ class AuthApiController extends BaseApiController
                     ]
                 );
 
-                $client->messages->create($toNumber, [
-                    'from' => $twilioSettings['twilio_my_phone_number'],
-                    'body' => "Your OTP is: $otp. It expires in 10 minutes.",
-                ]);
+                \Log::info("OTP is", [
+                        'OTP' => $otp,
+                        'expire' => $expireAt,
+                    ]);
+
+                // $client->messages->create($toNumber, [
+                //     'from' => $twilioSettings['twilio_my_phone_number'],
+                //     'body' => "Your OTP is: $otp. It expires in 10 minutes.",
+                // ]);
 
                 DB::commit();
                 return ResponseService::successResponse(__('OTP sent successfully.'));

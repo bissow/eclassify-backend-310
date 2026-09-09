@@ -48,20 +48,33 @@ class SellerPromotionApiController extends BaseApiController
             $requiresVerification = !$user->is_verified;
             $requiresPackage = $user->is_verified && (!$eligibility['package'] || $remainingQuota === '0');
 
+            // Check which promotions this specific item is already submitted to
+            $alreadySubmittedPromotionIds = [];
+            if ($request->filled('item_id')) {
+                $alreadySubmittedPromotionIds = PromotionItem::where('item_id', $request->item_id)
+                    ->where('user_id', $user->id)
+                    ->whereIn('status', ['active', 'pending'])
+                    ->pluck('promotion_id')
+                    ->map(fn($id) => (int) $id)
+                    ->toArray();
+            }
+
             return ResponseService::successResponse(
                 __('Available promotions fetched successfully'),
                 [
-                    'is_verified'           => (bool) $user->is_verified,
-                    'requires_verification' => $requiresVerification,
-                    'requires_package'      => $requiresPackage,
-                    'can_participate'       => $eligibility['eligible'],
-                    'eligibility_msg'       => $eligibility['message'],
-                    'remaining_quota'       => $remainingQuota,
-                    'promotions'            => PromotionResource::collection($promotions),
+                    'is_verified'                     => (bool) $user->is_verified,
+                    'verification_status'             => $user->verification_request?->status ?? ($user->is_verified ? 'approved' : 'not_applied'),
+                    'requires_verification'           => $requiresVerification,
+                    'requires_package'                => $requiresPackage,
+                    'can_participate'                 => $eligibility['eligible'],
+                    'eligibility_msg'                 => $eligibility['message'],
+                    'remaining_quota'                 => $remainingQuota,
+                    'already_submitted_promotion_ids' => $alreadySubmittedPromotionIds,
+                    'promotions'                      => PromotionResource::collection($promotions),
                 ]
             );
         } catch (Throwable $th) {
-            ResponseService::logErrorResponse($th, 'SellerPromotionApiController -> getAvailablePromotions');
+            ResponseService::logErrorResponse($th, 'SellerPromotionApiController -> getAvailablePromotions', $th->getMessage(), false);
             return ResponseService::errorResponse(__('Failed to fetch available promotions'));
         }
     }
@@ -89,7 +102,7 @@ class SellerPromotionApiController extends BaseApiController
                 PromotionItemResource::collection($items)->response()->getData(true)
             );
         } catch (Throwable $th) {
-            ResponseService::logErrorResponse($th, 'SellerPromotionApiController -> getMyPromotionItems');
+            ResponseService::logErrorResponse($th, 'SellerPromotionApiController -> getMyPromotionItems', $th->getMessage(), false);
             return ResponseService::errorResponse(__('Failed to fetch your promotional items'));
         }
     }
@@ -127,13 +140,20 @@ class SellerPromotionApiController extends BaseApiController
 
             $promotionItem = PromotionService::submitItemToPromotion($user, $item, $promotion, $request->all());
 
+            $isReplacement = !empty($request->replace) || !empty($request->overwrite);
             return ResponseService::successResponse(
-                __('Advertisement successfully added to promotion!'),
+                $isReplacement
+                    ? __('Promotional offer updated successfully!')
+                    : __('Advertisement successfully added to promotion!'),
                 new PromotionItemResource($promotionItem->load(['promotion', 'item']))
             );
         } catch (Throwable $th) {
-            ResponseService::logErrorResponse($th, 'SellerPromotionApiController -> addPromotionItem');
-            return ResponseService::errorResponse($th->getMessage() ?: __('Failed to add advertisement to promotion'));
+            ResponseService::logErrorResponse($th, 'SellerPromotionApiController -> addPromotionItem', $th->getMessage(), false);
+            $msg = $th->getMessage() ?: __('Failed to add advertisement to promotion');
+            $isAlreadySubmitted = str_contains(strtolower($msg), 'already submitted');
+            return ResponseService::errorResponse($msg, [
+                'already_submitted' => $isAlreadySubmitted,
+            ]);
         }
     }
 
@@ -193,7 +213,7 @@ class SellerPromotionApiController extends BaseApiController
                 new PromotionItemResource($promoItem->load(['promotion', 'item']))
             );
         } catch (Throwable $th) {
-            ResponseService::logErrorResponse($th, 'SellerPromotionApiController -> updatePromotionItem');
+            ResponseService::logErrorResponse($th, 'SellerPromotionApiController -> updatePromotionItem', $th->getMessage(), false);
             return ResponseService::errorResponse($th->getMessage() ?: __('Failed to update promotional item'));
         }
     }
@@ -234,7 +254,7 @@ class SellerPromotionApiController extends BaseApiController
                 ['id' => $promoItem->id, 'status' => $promoItem->status]
             );
         } catch (Throwable $th) {
-            ResponseService::logErrorResponse($th, 'SellerPromotionApiController -> togglePromotionItemStatus');
+            ResponseService::logErrorResponse($th, 'SellerPromotionApiController -> togglePromotionItemStatus', $th->getMessage(), false);
             return ResponseService::errorResponse(__('Failed to toggle status'));
         }
     }
@@ -266,7 +286,7 @@ class SellerPromotionApiController extends BaseApiController
 
             return ResponseService::successResponse(__('Promotional item removed successfully'));
         } catch (Throwable $th) {
-            ResponseService::logErrorResponse($th, 'SellerPromotionApiController -> deletePromotionItem');
+            ResponseService::logErrorResponse($th, 'SellerPromotionApiController -> deletePromotionItem', $th->getMessage(), false);
             return ResponseService::errorResponse(__('Failed to delete promotional item'));
         }
     }
@@ -301,7 +321,7 @@ class SellerPromotionApiController extends BaseApiController
                 $options
             );
         } catch (Throwable $th) {
-            ResponseService::logErrorResponse($th, 'SellerPromotionApiController -> getAdPromotionOptions');
+            ResponseService::logErrorResponse($th, 'SellerPromotionApiController -> getAdPromotionOptions', $th->getMessage(), false);
             return ResponseService::errorResponse(__('Failed to fetch promotion options'));
         }
     }
@@ -340,7 +360,7 @@ class SellerPromotionApiController extends BaseApiController
                 $adPromotion
             );
         } catch (Throwable $th) {
-            ResponseService::logErrorResponse($th, 'SellerPromotionApiController -> promoteAd');
+            ResponseService::logErrorResponse($th, 'SellerPromotionApiController -> promoteAd', $th->getMessage(), false);
             return ResponseService::errorResponse($th->getMessage() ?: __('Failed to promote advertisement'));
         }
     }
@@ -351,6 +371,17 @@ class SellerPromotionApiController extends BaseApiController
     public function getPromotionsAnalytics(Request $request)
     {
         try {
+            if (!$request->filled('user_id')) {
+                $authUser = Auth::user();
+                if (!$authUser || !$authUser->is_verified) {
+                    return ResponseService::errorResponse(
+                        __('Seller verification is required to access Promotions & Sales Analytics.'),
+                        ['requires_verification' => true, 'is_verified' => false],
+                        403
+                    );
+                }
+            }
+
             $userId = $request->filled('user_id') ? (int) $request->user_id : Auth::id();
             if (!$userId) {
                 return ResponseService::errorResponse(__('User not authenticated'));
@@ -436,7 +467,7 @@ class SellerPromotionApiController extends BaseApiController
                 ]
             );
         } catch (Throwable $th) {
-            ResponseService::logErrorResponse($th, 'SellerPromotionApiController -> getPromotionsAnalytics');
+            ResponseService::logErrorResponse($th, 'SellerPromotionApiController -> getPromotionsAnalytics', $th->getMessage(), false);
             return ResponseService::errorResponse(__('Failed to fetch promotional analytics'));
         }
     }
@@ -447,6 +478,17 @@ class SellerPromotionApiController extends BaseApiController
     public function getPromotionsHistory(Request $request)
     {
         try {
+            if (!$request->filled('user_id')) {
+                $authUser = Auth::user();
+                if (!$authUser || !$authUser->is_verified) {
+                    return ResponseService::errorResponse(
+                        __('Seller verification is required to access Promotions & Sales Analytics.'),
+                        ['requires_verification' => true, 'is_verified' => false],
+                        403
+                    );
+                }
+            }
+
             $userId = $request->filled('user_id') ? (int) $request->user_id : Auth::id();
             if (!$userId) {
                 return ResponseService::errorResponse(__('User not authenticated'));
@@ -622,7 +664,7 @@ class SellerPromotionApiController extends BaseApiController
                 ]
             );
         } catch (Throwable $th) {
-            ResponseService::logErrorResponse($th, 'SellerPromotionApiController -> getPromotionsHistory');
+            ResponseService::logErrorResponse($th, 'SellerPromotionApiController -> getPromotionsHistory', $th->getMessage(), false);
             return ResponseService::errorResponse(__('Failed to fetch promotional history'));
         }
     }

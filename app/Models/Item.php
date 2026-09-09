@@ -470,6 +470,7 @@ class Item extends Model
             ? $this->active_ad_promotions
             : $this->active_ad_promotions()->get();
 
+        $formatter = app(\App\Services\CurrencyFormatterService::class);
         $promotionsList = [];
         foreach ($salesItems as $pi) {
             $promotionsList[] = [
@@ -481,6 +482,8 @@ class Item extends Model
                 'campaign_title'         => $pi->promotion?->campaign?->title,
                 'campaign_slug'          => $pi->promotion?->campaign?->slug,
                 'promotional_price'      => (float) $pi->promotional_price,
+                'formatted_promotional_price' => $formatter->formatPrice($pi->promotional_price, $this->currency),
+                'formatted_original_price'    => $formatter->formatPrice($this->price, $this->currency),
                 'discount_value'         => (float) $pi->discount_value,
                 'discount_type'          => $pi->discount_type,
                 'discount_percentage'    => $pi->discount_percentage,
