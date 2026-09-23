@@ -35,7 +35,11 @@ composer.lock
 
 # macOS hidden files
 .DS_Store
-#other
-.cspell
-.claude
 /app/Modules/
+
+storage/framework/sessions/*
+!storage/framework/sessions/.gitignore
+storage/framework/views/*
+!storage/framework/views/.gitignore
+bootstrap/cache/*
+!bootstrap/cache/.gitignore

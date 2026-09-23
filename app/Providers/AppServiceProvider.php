@@ -27,6 +27,11 @@ class AppServiceProvider extends ServiceProvider
     {
         Schema::defaultStringLength(191);
 
+        // Force HTTPS for all generated URLs (assets, routes, etc.)
+        if (env('APP_ENV') === 'production') {
+            \URL::forceScheme('https');
+        }
+
         // Skip integrity check during console commands
         if (app()->runningInConsole()) {
             return;

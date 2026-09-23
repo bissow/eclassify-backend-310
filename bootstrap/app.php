@@ -27,7 +27,8 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        $middleware->trustProxies(at: [], headers: 0);
+        // Trust all proxies (required for dynamic Docker environments like Dokploy)
+        $middleware->trustProxies(at: '*');
 
         $middleware->prepend(TrustProxies::class);
         $middleware->prepend(HandleCors::class);
