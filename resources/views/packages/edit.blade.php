@@ -451,6 +451,21 @@
                                                         </div>
                                                     </div>
                                                 </div>
+
+                                                {{-- Seller Store QR Code Feature --}}
+                                                <div class="col-md-12 mb-3">
+                                                    <div class="card p-3 border rounded shadow-sm" style="background-color: #f0fdfa; border-color: #99f6e4 !important;">
+                                                        <div class="form-check form-switch mb-1">
+                                                            <input class="form-check-input" type="checkbox"
+                                                                name="allows_seller_qr_code" id="allows_seller_qr_code" value="1"
+                                                                {{ old('allows_seller_qr_code', $package->allows_seller_qr_code) ? 'checked' : '' }}>
+                                                            <label class="form-check-label fw-bold text-dark" for="allows_seller_qr_code">
+                                                                <i class="ph ph-qr-code text-primary me-1"></i> {{ __('Include Seller Store QR Code Feature') }}
+                                                            </label>
+                                                        </div>
+                                                        <small class="text-muted">{{ __('Allows verified store owners/sellers to generate custom QR standees & posters (UPI/Google Pay style) with location-based catalog discovery.') }}</small>
+                                                    </div>
+                                                </div>
                                             </div>
 
                                             {{-- Key Points --}}

@@ -147,7 +147,7 @@
                 </div>
                 <form action="{{ route('stores.store') }}" method="POST" enctype="multipart/form-data" id="createStoreForm">
                     @csrf
-                    <div class="modal-body p-4">
+                    <div class="modal-body p-4" style="max-height: calc(100vh - 210px); overflow-y: auto;">
                         <div class="row g-3">
                             <!-- Store Owner User Select -->
                             <div class="col-md-12">
@@ -288,7 +288,7 @@
                     @csrf
                     @method('PUT')
                     <input type="hidden" name="id" id="edit_store_id">
-                    <div class="modal-body p-4">
+                    <div class="modal-body p-4" style="max-height: calc(100vh - 210px); overflow-y: auto;">
                         <div class="row g-3">
                             <!-- Store Owner User Select -->
                             <div class="col-md-12">
@@ -529,7 +529,7 @@
             return '<div class="d-flex align-items-center gap-2">' +
                 '<img src="' + logo + '" alt="' + (row.name || '') + '" class="rounded-circle shadow-sm" style="width: 40px; height: 40px; object-fit: cover;" onerror="this.src=\'{{ asset('assets/images/default-profile-icon.svg') }}\'">' +
                 '<div>' +
-                '<div class="fw-bold text-dark">' + (row.name || '-') + '</div>' +
+                '<div class="fw-bold">' + (row.name || '-') + '</div>' +
                 '<small class="text-muted"><i class="ph ph-link"></i> ' + (row.slug || '') + '</small>' +
                 '</div>' +
                 '</div>';

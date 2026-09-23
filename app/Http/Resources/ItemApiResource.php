@@ -250,6 +250,7 @@ class ItemApiResource extends ResourceCollection
                     'active_promotion_item' => !empty($activePromotions['sales']) ? $activePromotions['sales'][0] : null,
                     'is_spotlight' => $activePromotions['is_spotlight'] ?? false,
                     'is_top_ad' => $activePromotions['is_top_ad'] ?? false,
+                    'item_type' => $item->item_type ?? 'normal',
                 ];
                 if ($this->myItem) {
                     $row['status'] = $item->status;

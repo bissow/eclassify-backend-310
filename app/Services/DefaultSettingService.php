@@ -125,6 +125,23 @@ class DefaultSettingService {
             // --- Item Video Settings ---
             ['name' => 'item_video_max_file_size_mb', 'value' => '50', 'type' => 'string'],
 
+            // --- Seller QR Code & Standee Settings ---
+            ['name' => 'seller_qr_enabled', 'value' => '1', 'type' => 'boolean'],
+            ['name' => 'seller_qr_allow_user_logo', 'value' => '1', 'type' => 'boolean'],
+            ['name' => 'seller_qr_allow_user_customization', 'value' => '1', 'type' => 'boolean'],
+            ['name' => 'seller_qr_default_title', 'value' => 'Scan to Browse Store & Catalog', 'type' => 'string'],
+            ['name' => 'seller_qr_default_tagline', 'value' => 'Explore all verified ads, items and exclusive offers', 'type' => 'string'],
+            ['name' => 'seller_qr_default_footer_text', 'value' => 'Powered by Bissow.com', 'type' => 'string'],
+            ['name' => 'seller_qr_footer_logo', 'value' => 'assets/images/logo/sidebar_logo.png', 'type' => 'file'],
+            ['name' => 'seller_qr_primary_color', 'value' => '#00B2CA', 'type' => 'string'],
+            ['name' => 'seller_qr_secondary_color', 'value' => '#0F172A', 'type' => 'string'],
+            ['name' => 'seller_qr_default_center_logo_type', 'value' => 'platform_logo', 'type' => 'string'],
+            ['name' => 'seller_qr_warning_distance_km', 'value' => '25', 'type' => 'number'],
+            ['name' => 'seller_qr_badge_text', 'value' => 'DIGITAL STORE & CATALOG', 'type' => 'string'],
+            ['name' => 'seller_qr_catalog_banner_text', 'value' => 'Browse this store catalog on our mobile app', 'type' => 'string'],
+            ['name' => 'seller_qr_catalog_base_url', 'value' => '', 'type' => 'string'],
+            ['name' => 'seller_qr_center_logo', 'value' => 'assets/images/logo/favicon.png', 'type' => 'file'],
+
         ];
 
     }

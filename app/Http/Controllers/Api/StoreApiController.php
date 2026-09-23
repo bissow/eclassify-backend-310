@@ -414,7 +414,18 @@ class StoreApiController extends BaseApiController
             ->orderBy('created_at', 'desc');
 
             $itemsPaginated = $itemsQuery->paginate($itemsLimit, ['*'], 'items_page', $itemsPage);
-            $formattedItems = (new ItemApiResource(collect($itemsPaginated->items())))->asSingle();
+            $rawStoreItems = (new ItemApiResource(collect($itemsPaginated->items())))->toArray($request);
+            $formattedItems = array_values(array_map(function ($row) {
+                if (is_array($row)) {
+                    if (isset($row['translation']['name']) && empty($row['name'])) {
+                        $row['name'] = $row['translation']['name'];
+                    }
+                    if (isset($row['translation']['address']) && empty($row['address'])) {
+                        $row['address'] = $row['translation']['address'];
+                    }
+                }
+                return $row;
+            }, $rawStoreItems));
 
             $reviews = SellerRating::with('buyer:id,name,profile')
                 ->where('seller_id', $store->user_id)

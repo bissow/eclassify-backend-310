@@ -222,6 +222,7 @@ class PackageController extends Controller {
             $data['top_ad_limit'] = $request->filled('top_ad_limit') ? (int) $request->top_ad_limit : null;
             $data['allows_spotlight'] = $request->boolean('allows_spotlight', false) ? 1 : 0;
             $data['spotlight_limit'] = $request->filled('spotlight_limit') ? (int) $request->spotlight_limit : null;
+            $data['allows_seller_qr_code'] = $request->boolean('allows_seller_qr_code', false) ? 1 : 0;
 
             if ($packageType === 'promotional') {
                 $data['item_limit'] = $data['promotion_item_limit'] ? (string) $data['promotion_item_limit'] : 'unlimited';
@@ -517,6 +518,7 @@ class PackageController extends Controller {
             $data['top_ad_limit'] = $request->filled('top_ad_limit') ? (int) $request->top_ad_limit : null;
             $data['allows_spotlight'] = $request->boolean('allows_spotlight', false) ? 1 : 0;
             $data['spotlight_limit'] = $request->filled('spotlight_limit') ? (int) $request->spotlight_limit : null;
+            $data['allows_seller_qr_code'] = $request->boolean('allows_seller_qr_code', false) ? 1 : 0;
 
             if ($request->hasFile('icon')) {
                 $data['icon'] = FileService::compressAndReplace($request->file('icon'), $this->uploadFolder, $package->getRawOriginal('icon'));

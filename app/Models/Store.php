@@ -158,4 +158,9 @@ class Store extends Model
 
         return $query->orderBy('distance', 'asc');
     }
+
+    public function qrCode(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(SellerQrCode::class);
+    }
 }

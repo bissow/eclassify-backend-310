@@ -41,6 +41,7 @@ class Package extends Model {
         'top_ad_limit',
         'allows_spotlight',
         'spotlight_limit',
+        'allows_seller_qr_code',
     ];
     protected $appends = ['translated_name', 'translated_description','translated_key_points'];
     
@@ -186,6 +187,7 @@ class Package extends Model {
             'top_ad_limit'             => 'integer',
             'allows_spotlight'         => 'boolean',
             'spotlight_limit'          => 'integer',
+            'allows_seller_qr_code'    => 'boolean',
         ];
     }
 
@@ -207,6 +209,11 @@ class Package extends Model {
     public function allowsSpotlight(): bool
     {
         return (bool) $this->allows_spotlight;
+    }
+
+    public function allowsSellerQrCode(): bool
+    {
+        return (bool) $this->allows_seller_qr_code;
     }
 }
 

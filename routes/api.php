@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\ReviewApiController;
 use App\Http\Controllers\Api\SettingsApiController;
 use App\Http\Controllers\Api\OfferApiController;
 use App\Http\Controllers\Api\SellerPromotionApiController;
+use App\Http\Controllers\Api\SellerQrApiController;
 use App\Http\Controllers\Api\SocialApiController;
 use App\Http\Controllers\Api\StoreApiController;
 use App\Http\Controllers\Api\UserApiController;
@@ -53,6 +54,13 @@ Route::group(['middleware' => ['auth:sanctum']], static function () {
     Route::post('setup-store', [StoreApiController::class, 'setupStore']);
     Route::get('get-my-store', [StoreApiController::class, 'getMyStore']);
     Route::post('toggle-store-status', [StoreApiController::class, 'toggleStoreStatus']);
+
+    /* Seller QR Code Module (Authenticated Seller) */
+    Route::group(['prefix' => 'seller-qr'], static function () {
+        Route::get('eligibility', [SellerQrApiController::class, 'checkEligibility']);
+        Route::get('my-qr', [SellerQrApiController::class, 'getMyQr']);
+        Route::post('generate-or-update', [SellerQrApiController::class, 'generateOrUpdate']);
+    });
 
     /* Item Module */
     Route::get('my-items', [ItemApiController::class, 'getMyItems']);
@@ -177,6 +185,11 @@ Route::get('get-seller-slug', [UserApiController::class, 'getSellerSlug']);
 Route::get('get-stores', [StoreApiController::class, 'getStores']);
 Route::get('get-store-detail', [StoreApiController::class, 'getStoreDetail']);
 Route::get('get-store-slugs', [StoreApiController::class, 'getStoreSlugs']);
+
+/* Seller QR Code Module (Public Scan & Settings) */
+Route::get('seller-qr/store/{identifier}', [SellerQrApiController::class, 'getStoreByQr']);
+Route::get('seller-qr/settings', [SellerQrApiController::class, 'getSettings']);
+Route::get('seller-qr/download', [SellerQrApiController::class, 'downloadStandee']);
 
 /* Social Module */
 Route::get('followers', [SocialApiController::class, 'getFollowers']);

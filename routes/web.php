@@ -30,6 +30,8 @@ use App\Http\Controllers\PluginManagerController;
 use App\Http\Controllers\ReportReasonController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SellerController;
+use App\Http\Controllers\SellerQrSettingController;
+use App\Http\Controllers\SellerQrWebController;
 use App\Http\Controllers\SeoSettingController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\SliderController;
@@ -330,6 +332,18 @@ Route::group(['middleware' => ['auth', 'language']], static function () {
     Route::resource('stores', StoreController::class);
     /*** Store Module : END ***/
 
+    /*** Seller QR Module : START ***/
+    Route::group(['prefix' => 'seller-qr', 'as' => 'seller-qr.'], static function () {
+        Route::get('/', [SellerQrSettingController::class, 'index'])->name('index');
+        Route::get('/show', [SellerQrSettingController::class, 'show'])->name('show');
+        Route::get('/settings', [SellerQrSettingController::class, 'settings'])->name('settings');
+        Route::post('/settings/update', [SellerQrSettingController::class, 'updateSettings'])->name('settings.update');
+        Route::post('/toggle-status/{id}', [SellerQrSettingController::class, 'toggleStatus'])->name('toggle-status');
+        Route::get('/preview/{id}', [SellerQrSettingController::class, 'previewStandee'])->name('preview');
+        Route::get('/download/{id}', [SellerQrSettingController::class, 'downloadStandee'])->name('download');
+    });
+    /*** Seller QR Module : END ***/
+
     /*** Setting Module : START ***/
     Route::group(['prefix' => 'settings'], static function () {
         Route::get('/', [SettingController::class, 'index'])->name('settings.index');
@@ -606,6 +620,9 @@ Route::get('/area-translations/{city}', [PlaceController::class, 'loadCityAreas'
 Route::put('/area-translations/update', [PlaceController::class, 'updateAreasTranslations'])->name('areas.translation.update');
 
 Route::get('/product-details/{slug}', [SettingController::class, 'webPageURL'])->name('deep-link');
+
+/* Universal Store QR Code Scan & Digital Catalog Route */
+Route::get('/store-qr/{token}', [SellerQrWebController::class, 'handleQrVisit'])->name('store-qr.visit');
 
 // Apache rewrites /storage/{path}?w=..&h=..&q=.. straight to index.php, keeping the original URI.
 // Nginx instead rewrites to /image-resize/{path}, so both prefixes are routed here.

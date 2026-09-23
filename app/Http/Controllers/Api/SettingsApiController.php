@@ -21,6 +21,7 @@ use App\Models\User;
 use App\Models\UserReports;
 use App\Services\CachingService;
 use App\Services\ResponseService;
+use App\Services\SellerQrCodeService;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -93,6 +94,24 @@ class SettingsApiController extends BaseApiController
                 ->orderBy('sequence')
                 ->get(['id', 'section_type', 'sequence']);
             $tempRow['home_screen_sections'] = $sections;
+
+            // Merge Seller QR & Standee settings for universal Web & Mobile app sync
+            $effectiveQr = SellerQrCodeService::getEffectiveSettings();
+            $tempRow['seller_qr_enabled'] = $effectiveQr['enabled'] ? '1' : '0';
+            $tempRow['seller_qr_allow_user_logo'] = $effectiveQr['allow_user_logo'] ? '1' : '0';
+            $tempRow['seller_qr_allow_user_customization'] = $effectiveQr['allow_user_customization'] ? '1' : '0';
+            $tempRow['seller_qr_default_title'] = $effectiveQr['default_title'];
+            $tempRow['seller_qr_default_tagline'] = $effectiveQr['default_tagline'];
+            $tempRow['seller_qr_default_footer_text'] = $effectiveQr['default_footer_text'];
+            $tempRow['seller_qr_footer_logo'] = $effectiveQr['footer_logo_url'];
+            $tempRow['seller_qr_center_logo'] = $effectiveQr['center_logo_url'];
+            $tempRow['seller_qr_primary_color'] = $effectiveQr['primary_color'];
+            $tempRow['seller_qr_secondary_color'] = $effectiveQr['secondary_color'];
+            $tempRow['seller_qr_default_center_logo_type'] = $effectiveQr['default_center_logo_type'];
+            $tempRow['seller_qr_warning_distance_km'] = (string) $effectiveQr['warning_distance_km'];
+            $tempRow['seller_qr_badge_text'] = $effectiveQr['badge_text'];
+            $tempRow['seller_qr_catalog_banner_text'] = $effectiveQr['catalog_banner_text'];
+            $tempRow['seller_qr_catalog_base_url'] = $effectiveQr['catalog_base_url'];
 
             ResponseService::successResponse(__('Data Fetched Successfully'), $tempRow);
         } catch (Throwable $th) {

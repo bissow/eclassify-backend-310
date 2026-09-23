@@ -37,6 +37,7 @@
         "phpoffice/phpspreadsheet": "^5.2",
         "rap2hpoutre/laravel-log-viewer": "^3.1",
         "razorpay/razorpay": "2.*",
+        "simplesoftwareio/simple-qrcode": "^4.2",
         "spatie/image": "^3.9",
         "spatie/laravel-ignition": "^2.0",
         "spatie/laravel-package-tools": "^1.16",

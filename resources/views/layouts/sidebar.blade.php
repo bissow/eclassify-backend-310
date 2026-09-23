@@ -195,7 +195,8 @@
                     'seller-verification-field-update', 'seller-verification-field-delete',
                     'seller-verification-request-list', 'seller-verification-request-create',
                     'seller-verification-request-update', 'seller-verification-request-delete', 'seller-review-list',
-                    'seller-review-update', 'seller-review-delete', 'store-list', 'store-update', 'store-delete'])
+                    'seller-review-update', 'seller-review-delete', 'store-list', 'store-update', 'store-delete',
+                    'seller-qr-list', 'seller-qr-manage', 'seller-qr-setting'])
                     <li class="sidebar-item has-sub">
                         <a href="#" class='sidebar-link'>
                             <i class="ph ph-user-focus"></i>
@@ -205,6 +206,14 @@
                             @canany(['store-list', 'store-update', 'store-delete'])
                                 <li class="submenu-item">
                                     <a href="{{ route('stores.index') }}">{{ __('Stores & Shops') }}</a>
+                                </li>
+                            @endcanany
+                            @canany(['seller-qr-list', 'seller-qr-manage', 'seller-qr-setting'])
+                                <li class="submenu-item">
+                                    <a href="{{ route('seller-qr.index') }}">{{ __('Seller QR Codes') }}</a>
+                                </li>
+                                <li class="submenu-item">
+                                    <a href="{{ route('seller-qr.settings') }}">{{ __('QR Code Settings') }}</a>
                                 </li>
                             @endcanany
                             @canany(['seller-verification-field-list', 'seller-verification-field-create',

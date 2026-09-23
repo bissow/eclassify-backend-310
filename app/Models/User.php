@@ -298,4 +298,10 @@ class User extends Authenticatable {
         }
         return null;
     }
+
+    public function qrCode()
+    {
+        return $this->hasOne(SellerQrCode::class);
+    }
 }
+

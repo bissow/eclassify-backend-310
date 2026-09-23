@@ -156,5 +156,14 @@ class UserPurchasedPackage extends Model {
 
         return $this->used_spotlight_limit < $limit;
     }
+
+    public function hasSellerQrCodeAccess(): bool
+    {
+        if (!$this->package) {
+            return false;
+        }
+
+        return $this->package->allowsSellerQrCode();
+    }
 }
 
