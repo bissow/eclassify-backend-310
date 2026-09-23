@@ -316,12 +316,39 @@ Get all active store slugs for Next.js Static Site Generation (`getStaticPaths` 
 
 ---
 
-## 4. Admin Panel Integration
+## 4. Admin Panel Integration & Management
 
-1. **Navigation:** Accessible under **Seller Management > Stores & Shops** in the Admin dashboard sidebar.
-2. **Features:**
-   - Responsive Bootstrap Table with dark and light mode styling.
-   - Status Toggle Switch (instantly activates / deactivates store visibility via AJAX).
-   - Verification Badge Toggle (rewards trusted sellers with an official verification badge).
-   - Filters by Status (`Active`, `Inactive`) and Verification (`Verified`, `Unverified`).
-   - Soft Delete & Restoration safeguards.
+1. **Navigation:** Accessible under **Seller Management > Stores & Shops** (`/stores`) in the Admin dashboard sidebar.
+2. **Dashboard Overview:**
+   - 4 Live KPI counters: Total Stores, Verified Stores, Pending Stores, Stores Added Today.
+   - Filter bar: Status (`Active`, `Inactive`), Verification (`Verified`, `Unverified`), and real-time Search.
+3. **Add Store Modal:**
+   - AJAX user search (`/stores/search-users`) with Select2 to assign any registered user as store owner.
+   - Complete store metadata inputs: Name, Slug, Phone, Email, Physical Address, Geolocation coordinates, Operating hours, Website, Tax number.
+   - Logo & Banner image file uploaders.
+   - Automatically synchronizes `users.has_store = 1`.
+4. **View Store Modal:**
+   - Interactive modal displaying cover banner, store avatar, verification badge, owner contact card, address, coordinates, timings, and store listing statistics.
+5. **Edit Store Modal:**
+   - Pre-populated via AJAX (`/stores/details/{id}`) allowing administrators to update any store detail, replace branding assets, change ownership, or toggle verification.
+6. **Delete Store:**
+   - Safely removes store records and automatically updates `users.has_store = 0` if the user has no active stores remaining.
+7. **Bulk Store Upload (`/stores/bulk-upload`):**
+   - Spreadsheet processor supporting `.csv`, `.xlsx`, and `.xls` via PhpSpreadsheet.
+   - Download sample CSV template (`/stores/bulk-upload/example`).
+   - Image Gallery Modal with multi-image uploader to `store_images/` and 1-click relative path copying.
+   - Robust row-by-row processor resolving owner via `user_id`, `email`, or `phone`.
+
+---
+
+## 5. Security & Verified Store Protection
+
+- **API Level (`StoreApiController@setupStore`):** If a store has `is_verified = true`, updates from sellers/users via the API are blocked with a `403 Forbidden` response and message `"This store has been verified by the administrator and its details cannot be modified."`
+- **Frontend & App Locks:** Forms and upload controls are locked into read-only mode with verified banners when `is_verified` is true.
+
+---
+
+## 6. Centralized Translations
+
+- Updated `resources/lang/en.json`, `resources/lang/en_web.json`, and `resources/lang/en_app.json` with all store-related localization strings.
+

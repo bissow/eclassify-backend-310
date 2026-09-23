@@ -314,6 +314,15 @@ Route::group(['middleware' => ['auth', 'language']], static function () {
     });
 
     /*** Store Module : START ***/
+    Route::group(['prefix' => 'stores', 'as' => 'stores.'], static function () {
+        Route::get('/bulk-upload', [StoreController::class, 'bulkUploadIndex'])->name('bulk-upload.index');
+        Route::get('/bulk-upload/example', [StoreController::class, 'bulkUploadExample'])->name('bulk-upload.example');
+        Route::post('/bulk-upload/process', [StoreController::class, 'bulkUploadProcess'])->name('bulk-upload.process');
+        Route::get('/bulk-upload/gallery/list', [StoreController::class, 'getGalleryImages'])->name('bulk-upload.gallery.list');
+        Route::post('/bulk-upload/gallery/upload', [StoreController::class, 'uploadGalleryImages'])->name('bulk-upload.gallery.upload');
+        Route::get('/search-users', [StoreController::class, 'searchUsers'])->name('search-users');
+        Route::get('/details/{id}', [StoreController::class, 'getDetails'])->name('details');
+    });
     Route::resource('stores', StoreController::class);
     /*** Store Module : END ***/
 

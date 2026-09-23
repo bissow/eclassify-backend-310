@@ -12,6 +12,7 @@ use App\Services\StoreService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 use Throwable;
 
@@ -25,6 +26,10 @@ class StoreApiController extends BaseApiController
      */
     public function setupStore(Request $request)
     {
+        if (!Schema::hasTable('stores')) {
+            return ResponseService::errorResponse(__('Stores table not migrated yet. Please run php artisan migrate.'));
+        }
+
         try {
             DB::beginTransaction();
             $user = Auth::user();
@@ -61,6 +66,11 @@ class StoreApiController extends BaseApiController
             }
 
             $store = Store::where('user_id', $user->id)->first();
+
+            // If store is already verified by admin, lock seller/user from modifying details
+            if ($store && $store->is_verified) {
+                return ResponseService::errorResponse(__('This store has been verified by the administrator and its details cannot be modified. Please contact support if you need to update any information.'), null, 403);
+            }
 
             $storeData = [
                 'user_id'      => $user->id,
@@ -143,6 +153,13 @@ class StoreApiController extends BaseApiController
      */
     public function getMyStore(Request $request)
     {
+        if (!Schema::hasTable('stores')) {
+            return ResponseService::successResponse(__('No store found for user'), [
+                'has_store' => false,
+                'store'     => null,
+            ]);
+        }
+
         try {
             $user = Auth::user();
 
@@ -176,6 +193,10 @@ class StoreApiController extends BaseApiController
      */
     public function toggleStoreStatus(Request $request)
     {
+        if (!Schema::hasTable('stores')) {
+            return ResponseService::errorResponse(__('Stores table not migrated yet.'));
+        }
+
         try {
             $user = Auth::user();
             $store = Store::where('user_id', $user->id)->first();
@@ -201,6 +222,16 @@ class StoreApiController extends BaseApiController
      */
     public function getStores(Request $request)
     {
+        if (!Schema::hasTable('stores')) {
+            return ResponseService::successResponse(__('Stores fetched successfully'), [
+                'total'        => 0,
+                'current_page' => 1,
+                'per_page'     => (int) ($request->limit ?? 10),
+                'last_page'    => 1,
+                'data'         => [],
+            ]);
+        }
+
         $validator = Validator::make($request->all(), [
             'latitude'    => 'nullable|numeric|between:-90,90',
             'longitude'   => 'nullable|numeric|between:-180,180',
@@ -211,7 +242,7 @@ class StoreApiController extends BaseApiController
             'area_id'     => 'nullable|integer',
             'search'      => 'nullable|string',
             'is_verified' => 'nullable|boolean',
-            'sort_by'     => 'nullable|in:nearest,top_rated,newest,oldest,popular',
+            'sort_by'     => 'nullable|in:nearest,distance_asc,distance_desc,top_rated,rating_desc,newest,oldest,popular',
             'page'        => 'nullable|integer|min:1',
             'limit'       => 'nullable|integer|min:1|max:100',
         ]);
@@ -261,6 +292,12 @@ class StoreApiController extends BaseApiController
 
             // Sorting logic
             $sortBy = $request->sort_by ?? ($hasCoords ? 'nearest' : 'newest');
+            if ($sortBy === 'distance_asc') {
+                $sortBy = 'nearest';
+            }
+            if ($sortBy === 'rating_desc') {
+                $sortBy = 'top_rated';
+            }
 
             switch ($sortBy) {
                 case 'nearest':
@@ -317,6 +354,10 @@ class StoreApiController extends BaseApiController
      */
     public function getStoreDetail(Request $request)
     {
+        if (!Schema::hasTable('stores')) {
+            return ResponseService::errorResponse(__('Store not found'));
+        }
+
         $validator = Validator::make($request->all(), [
             'id'          => 'nullable|integer',
             'slug'        => 'nullable|string',
@@ -343,7 +384,7 @@ class StoreApiController extends BaseApiController
                 ->first();
 
             if (!$store) {
-                ResponseService::errorResponse(__('Store not found'));
+                return ResponseService::errorResponse(__('Store not found'));
             }
 
             // Check if current authenticated user is following this store's owner
@@ -404,12 +445,12 @@ class StoreApiController extends BaseApiController
      */
     public function getStoreSlugs(Request $request)
     {
-        try {
-            $slugs = Store::active()
-                ->whereNotNull('slug')
-                ->select('id', 'slug', 'updated_at')
-                ->paginate(500);
+        if (!Schema::hasTable('stores')) {
+            return ResponseService::successResponse(__('Store slugs fetched successfully'), []);
+        }
 
+        try {
+            $slugs = Store::active()->select('slug', 'updated_at')->get();
             ResponseService::successResponse(__('Store slugs fetched successfully'), $slugs);
         } catch (Throwable $th) {
             ResponseService::logErrorResponse($th, 'StoreApiController -> getStoreSlugs');

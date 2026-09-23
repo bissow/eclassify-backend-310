@@ -16,6 +16,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Throwable;
@@ -40,10 +41,19 @@ class UserApiController extends BaseApiController
             if (! $auth->hasRole('User')) {
                 ResponseService::errorResponse(__('Invalid User Role'));
             }
+
+            $relations = ['fcm_tokens'];
+            if (Schema::hasTable('stores')) {
+                $relations[] = 'store';
+            }
+            if (Schema::hasTable('areas')) {
+                $relations[] = 'area';
+            }
+
             $user = User::withCount([
                 'followers as followers_count',
                 'following as following_count'
-            ])->with(['fcm_tokens', 'store', 'area'])->find($auth->id);
+            ])->with($relations)->find($auth->id);
 
             $user->total_seller_unread_chat_count = ItemOffer::where('seller_id', $auth->id)
                 ->withCount(['sellerChat as unread_chat_count' => function ($q) use ($auth) {
@@ -182,10 +192,18 @@ class UserApiController extends BaseApiController
         ]);
 
         try {
+            $relations = [];
+            if (Schema::hasTable('stores')) {
+                $relations[] = 'store';
+            }
+            if (Schema::hasTable('areas')) {
+                $relations[] = 'area';
+            }
+
             $seller = User::withCount([
                 'followers as followers_count',
                 'following as following_count'
-            ])->with(['store', 'area'])->findOrFail($request->id);
+            ])->with($relations)->findOrFail($request->id);
 
             $ratingQuery = SellerRating::where('seller_id', $seller->id)->with('buyer:id,name,profile');
             $totalOneRatings = $ratingQuery->clone()->where('ratings', 1)->count();
