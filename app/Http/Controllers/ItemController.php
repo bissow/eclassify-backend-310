@@ -822,6 +822,15 @@ class ItemController extends Controller
                             'language_id'       => $languageId,
                         ];
                     }
+                    if (!empty($transData['description_json'])) {
+                        $translationData[] = [
+                            'translatable_id'   => $item->id,
+                            'translatable_type' => get_class($item),
+                            'key'               => 'description_json',
+                            'value'             => $transData['description_json'],
+                            'language_id'       => $languageId,
+                        ];
+                    }
                 }
                 if (!empty($translationData)) {
                     HelperService::storeTranslations($translationData);
@@ -1499,6 +1508,7 @@ class ItemController extends Controller
                 'name' => $request->name,
                 'slug' => $uniqueSlug,
                 'description' => $request->description,
+                'description_json' => $request->description_json ?? $request->description,
                 'address' => $request->input('address') ?? $request->input('address_input') ?? '',
                 'country' => $request->input('country_input') ?? '',
                 'state' => $request->input('state_input') ?? '',
@@ -1527,10 +1537,14 @@ class ItemController extends Controller
             if ($request->has('translations')) {
                 foreach ($request->input('translations', []) as $languageId => $translationData) {
                     if (!empty($translationData['name']) || !empty($translationData['description'])) {
-                        HelperService::storeTranslations([
+                        $transRows = [
                             ['translatable_id' => $item->id, 'translatable_type' => \App\Models\Item::class, 'key' => 'name', 'value' => $translationData['name'] ?? '', 'language_id' => $languageId],
                             ['translatable_id' => $item->id, 'translatable_type' => \App\Models\Item::class, 'key' => 'description', 'value' => $translationData['description'] ?? '', 'language_id' => $languageId],
-                        ]);
+                        ];
+                        if (!empty($translationData['description_json'])) {
+                            $transRows[] = ['translatable_id' => $item->id, 'translatable_type' => \App\Models\Item::class, 'key' => 'description_json', 'value' => $translationData['description_json'], 'language_id' => $languageId];
+                        }
+                        HelperService::storeTranslations($transRows);
                     }
                 }
             }

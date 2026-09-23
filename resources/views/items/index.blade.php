@@ -65,6 +65,57 @@
         #adPreviewMapWrap .leaflet-bottom {
             z-index: 1;
         }
+        /* Advertisement Rich Description Modal Styling */
+        .ad-desc-container {
+            position: relative;
+            transition: max-height 0.35s ease;
+        }
+        .ad-desc-container.is-collapsed {
+            max-height: 220px;
+            overflow: hidden;
+        }
+        .ad-desc-container.is-collapsed::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 70px;
+            background: linear-gradient(to bottom, rgba(255,255,255,0), #ffffff);
+            pointer-events: none;
+        }
+        [data-bs-theme="dark"] .ad-desc-container.is-collapsed::after,
+        .theme-dark .ad-desc-container.is-collapsed::after,
+        body.dark .ad-desc-container.is-collapsed::after {
+            background: linear-gradient(to bottom, rgba(30,41,59,0), #1e293b);
+        }
+        .ad-rich-content {
+            line-height: 1.65;
+            color: inherit;
+            word-break: break-word;
+        }
+        .ad-rich-content img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 8px 0;
+        }
+        .ad-rich-content p {
+            margin-bottom: 0.75rem;
+        }
+        .ad-rich-content p:last-child {
+            margin-bottom: 0;
+        }
+        .ad-rich-content blockquote {
+            border-left: 3px solid var(--bs-primary, #3b82f6);
+            padding-left: 12px;
+            color: #64748b;
+            margin: 10px 0;
+        }
+        .ad-rich-content ul, .ad-rich-content ol {
+            padding-left: 1.5rem;
+            margin-bottom: 0.75rem;
+        }
     </style>
 @endsection
 
@@ -300,8 +351,13 @@
                                 {{-- Description --}}
                                 <div id="adPreviewDescription" class="mb-4 ad-preview-hidden">
                                     <h5 class="fw-bold mb-3">{{ __('Description') }}</h5>
-                                    <div id="adDescriptionText"></div>
-                                    <a href="javascript:void(0)" id="adDescToggle" class="text-primary ad-preview-hidden">{{ __('Show more') }}</a>
+                                    <div id="adDescriptionContainer" class="ad-desc-container is-collapsed">
+                                        <div id="adDescriptionText" class="ad-rich-content"></div>
+                                    </div>
+                                    <a href="javascript:void(0)" id="adDescToggle" class="text-primary mt-2 d-inline-flex align-items-center gap-1 ad-preview-hidden">
+                                        <span class="ad-desc-toggle-text">{{ __('Show more') }}</span>
+                                        <i class="fas fa-chevron-down" style="font-size: 0.75rem;"></i>
+                                    </a>
                                 </div>
                             </div>
                             {{-- RIGHT COLUMN --}}
@@ -703,14 +759,56 @@
                 $('#adPreviewHighlights').hide();
             }
 
-            // --- Description ---
-            if (row.description) {
-                let desc = $('<span>').text(row.description).html();
-                let shortDesc = desc.length > 300 ? desc.substring(0, 300) + '...' : desc;
-                $('#adDescriptionText').html(`<p class="text-muted mb-0" id="adDescContent" style="white-space: pre-wrap;">${shortDesc}</p>`);
-                $('#adDescriptionText').data('full', desc).data('short', shortDesc).data('expanded', false);
-                $('#adDescToggle').toggle(desc.length > 300);
+            // --- Description: Prioritize description_json / formatted_description, fallback to description ---
+            let descHtml = '';
+            let rawJson = row.description_json || row.descriptionJson || '';
+            let formattedDesc = row.formatted_description || '';
+
+            if (formattedDesc && typeof formattedDesc === 'string' && formattedDesc.trim() !== '') {
+                descHtml = formattedDesc;
+            } else if (rawJson) {
+                if (typeof rawJson === 'object' && rawJson !== null) {
+                    let ops = rawJson.ops || (Array.isArray(rawJson) ? rawJson : null);
+                    if (ops) {
+                        descHtml = parseQuillDeltaToHtml(ops);
+                    }
+                } else if (typeof rawJson === 'string' && rawJson.trim() !== '') {
+                    try {
+                        let parsed = JSON.parse(rawJson);
+                        if (parsed && (parsed.ops || Array.isArray(parsed))) {
+                            descHtml = parseQuillDeltaToHtml(parsed.ops || parsed);
+                        } else if (typeof parsed === 'string') {
+                            descHtml = parsed;
+                        }
+                    } catch (e) {
+                        descHtml = rawJson;
+                    }
+                }
+            }
+
+            // Fallback to plain text description
+            if (!descHtml && row.description) {
+                let escaped = $('<span>').text(row.description).html();
+                descHtml = `<p class="text-muted mb-0" style="white-space: pre-wrap;">${escaped}</p>`;
+            }
+
+            if (descHtml && descHtml.trim() !== '') {
+                $('#adDescriptionText').html(descHtml);
+                $('#adDescriptionContainer').addClass('is-collapsed');
+                $('#adDescToggle .ad-desc-toggle-text').text("{{ __('Show more') }}");
+                $('#adDescToggle i').removeClass('fa-chevron-up').addClass('fa-chevron-down');
                 $('#adPreviewDescription').show();
+
+                setTimeout(function() {
+                    let containerEl = document.getElementById('adDescriptionText');
+                    let height = containerEl ? containerEl.scrollHeight : 0;
+                    if (height > 220) {
+                        $('#adDescToggle').removeClass('ad-preview-hidden').show();
+                    } else {
+                        $('#adDescriptionContainer').removeClass('is-collapsed');
+                        $('#adDescToggle').addClass('ad-preview-hidden').hide();
+                    }
+                }, 80);
             } else {
                 $('#adPreviewDescription').hide();
             }
@@ -879,18 +977,76 @@
             }
         }
 
+        // Helper to parse Quill Delta operations to sanitized HTML client-side
+        function parseQuillDeltaToHtml(ops) {
+            if (!Array.isArray(ops)) return '';
+            let html = '';
+            let currentLine = '';
+
+            for (let i = 0; i < ops.length; i++) {
+                let op = ops[i];
+                if (typeof op.insert === 'string') {
+                    let text = op.insert;
+                    let attrs = op.attributes || {};
+
+                    let parts = text.split('\n');
+                    for (let p = 0; p < parts.length; p++) {
+                        let seg = $('<span>').text(parts[p]).html();
+                        if (seg.length > 0) {
+                            if (attrs.bold) seg = `<strong>${seg}</strong>`;
+                            if (attrs.italic) seg = `<em>${seg}</em>`;
+                            if (attrs.underline) seg = `<u>${seg}</u>`;
+                            if (attrs.strike) seg = `<s>${seg}</s>`;
+                            let styles = [];
+                            if (attrs.color) styles.push(`color: ${attrs.color}`);
+                            if (attrs.background) styles.push(`background-color: ${attrs.background}`);
+                            if (styles.length) seg = `<span style="${styles.join('; ')}">${seg}</span>`;
+                            if (attrs.link) seg = `<a href="${attrs.link}" target="_blank" rel="noopener noreferrer">${seg}</a>`;
+                            currentLine += seg;
+                        }
+
+                        if (p < parts.length - 1) {
+                            if (attrs.header === 1) {
+                                html += `<h3 class="fw-bold mt-2 mb-1">${currentLine}</h3>`;
+                            } else if (attrs.header === 2) {
+                                html += `<h4 class="fw-bold mt-2 mb-1">${currentLine}</h4>`;
+                            } else if (attrs.header === 3) {
+                                html += `<h5 class="fw-bold mt-2 mb-1">${currentLine}</h5>`;
+                            } else if (attrs.blockquote) {
+                                html += `<blockquote class="blockquote">${currentLine}</blockquote>`;
+                            } else if (attrs.list === 'bullet') {
+                                html += `<ul><li>${currentLine}</li></ul>`;
+                            } else if (attrs.list === 'ordered') {
+                                html += `<ol><li>${currentLine}</li></ol>`;
+                            } else {
+                                html += `<p class="mb-2">${currentLine || '&nbsp;'}</p>`;
+                            }
+                            currentLine = '';
+                        }
+                    }
+                } else if (typeof op.insert === 'object' && op.insert && op.insert.image) {
+                    currentLine += `<img src="${op.insert.image}" class="img-fluid rounded my-2" alt="embedded photo" style="max-height: 350px;">`;
+                }
+            }
+            if (currentLine) {
+                html += `<p class="mb-2">${currentLine}</p>`;
+            }
+            return html;
+        }
+
         // Description toggle
         $(document).on('click', '#adDescToggle', function() {
-            let $wrap = $('#adDescriptionText');
-            let expanded = $wrap.data('expanded');
-            if (expanded) {
-                $('#adDescContent').html($wrap.data('short'));
-                $(this).text("{{ __('Show more') }}");
+            let $container = $('#adDescriptionContainer');
+            let isCollapsed = $container.hasClass('is-collapsed');
+            if (isCollapsed) {
+                $container.removeClass('is-collapsed');
+                $(this).find('.ad-desc-toggle-text').text("{{ __('Show less') }}");
+                $(this).find('i').removeClass('fa-chevron-down').addClass('fa-chevron-up');
             } else {
-                $('#adDescContent').html($wrap.data('full'));
-                $(this).text("{{ __('Show less') }}");
+                $container.addClass('is-collapsed');
+                $(this).find('.ad-desc-toggle-text').text("{{ __('Show more') }}");
+                $(this).find('i').removeClass('fa-chevron-up').addClass('fa-chevron-down');
             }
-            $wrap.data('expanded', !expanded);
         });
 
         // Status reject reason toggle in preview

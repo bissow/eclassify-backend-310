@@ -357,13 +357,17 @@ class ItemApiController extends BaseApiController
                 foreach ($translations as $languageId => $translationData) {
                     // Optional: Check if language ID exists
                     if (Language::where('id', $languageId)->exists()) {
-                        HelperService::storeTranslations([
+                        $transRows = [
                             ['translatable_id' => $item->id, 'translatable_type' => \App\Models\Item::class, 'key' => 'name', 'value' => $translationData['name'], 'language_id' => $languageId],
                             ['translatable_id' => $item->id, 'translatable_type' => \App\Models\Item::class, 'key' => 'description', 'value' => $translationData['description'] ?? '', 'language_id' => $languageId],
                             ['translatable_id' => $item->id, 'translatable_type' => \App\Models\Item::class, 'key' => 'address', 'value' => $translationData['address'] ?? '', 'language_id' => $languageId],
                             ['translatable_id' => $item->id, 'translatable_type' => \App\Models\Item::class, 'key' => 'rejected_reason', 'value' => $translationData['rejected_reason'] ?? null, 'language_id' => $languageId],
                             ['translatable_id' => $item->id, 'translatable_type' => \App\Models\Item::class, 'key' => 'admin_edit_reason', 'value' => $translationData['admin_edit_reason'] ?? null, 'language_id' => $languageId],
-                        ]);
+                        ];
+                        if (!empty($translationData['description_json'])) {
+                            $transRows[] = ['translatable_id' => $item->id, 'translatable_type' => \App\Models\Item::class, 'key' => 'description_json', 'value' => $translationData['description_json'], 'language_id' => $languageId];
+                        }
+                        HelperService::storeTranslations($transRows);
                     }
                 }
             }
@@ -1069,13 +1073,17 @@ class ItemApiController extends BaseApiController
             if (! empty($translations)) {
                 foreach ($translations as $languageId => $translationData) {
                     if (Language::where('id', $languageId)->exists()) {
-                        HelperService::storeTranslations([
+                        $transRows = [
                             ['translatable_id' => $item->id, 'translatable_type' => \App\Models\Item::class, 'key' => 'name', 'value' => $translationData['name'], 'language_id' => $languageId],
                             ['translatable_id' => $item->id, 'translatable_type' => \App\Models\Item::class, 'key' => 'description', 'value' => $translationData['description'] ?? '', 'language_id' => $languageId],
                             ['translatable_id' => $item->id, 'translatable_type' => \App\Models\Item::class, 'key' => 'address', 'value' => $translationData['address'] ?? '', 'language_id' => $languageId],
                             ['translatable_id' => $item->id, 'translatable_type' => \App\Models\Item::class, 'key' => 'rejected_reason', 'value' => $translationData['rejected_reason'] ?? null, 'language_id' => $languageId],
                             ['translatable_id' => $item->id, 'translatable_type' => \App\Models\Item::class, 'key' => 'admin_edit_reason', 'value' => $translationData['admin_edit_reason'] ?? null, 'language_id' => $languageId],
-                        ]);
+                        ];
+                        if (!empty($translationData['description_json'])) {
+                            $transRows[] = ['translatable_id' => $item->id, 'translatable_type' => \App\Models\Item::class, 'key' => 'description_json', 'value' => $translationData['description_json'], 'language_id' => $languageId];
+                        }
+                        HelperService::storeTranslations($transRows);
                     }
                 }
             }

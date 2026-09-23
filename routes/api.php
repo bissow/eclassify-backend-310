@@ -23,6 +23,7 @@ use App\Http\Controllers\Api\SocialApiController;
 use App\Http\Controllers\Api\StoreApiController;
 use App\Http\Controllers\Api\UserApiController;
 use App\Http\Controllers\Api\VerificationApiController;
+use App\Http\Controllers\Api\ImageEditorApiController;
 use App\Http\Controllers\GeminiAIController;
 use Illuminate\Support\Facades\Route;
 
@@ -265,4 +266,18 @@ Route::group(['prefix' => 'offers'], static function () {
     Route::get('clearance-sales', [OfferApiController::class, 'getClearanceSales']);
     Route::get('deals-of-the-day', [OfferApiController::class, 'getDealsOfTheDay']);
     Route::get('spotlight-ads', [OfferApiController::class, 'getSpotlightAds']);
-});
+});
+
+/* Image Editor & Rich Text Content Formatter Module */
+Route::group(['prefix' => 'image'], static function () {
+    Route::post('edit', [ImageEditorApiController::class, 'edit']);
+    Route::post('preview', [ImageEditorApiController::class, 'preview']);
+    Route::middleware('auth:sanctum')->group(static function () {
+        Route::get('history', [ImageEditorApiController::class, 'history']);
+        Route::delete('{id}', [ImageEditorApiController::class, 'delete']);
+    });
+});
+
+Route::post('format-content', [ImageEditorApiController::class, 'formatContent']);
+Route::post('editor/upload-image', [ImageEditorApiController::class, 'uploadEditorImage']);
+

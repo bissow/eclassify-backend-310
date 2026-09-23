@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\EditedImage;
+use App\Services\ContentFormatterService;
 use App\Traits\ManageTranslations;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -35,6 +37,7 @@ class Item extends Model
         'name',
         'price',
         'description',
+        'description_json',
         'latitude',
         'longitude',
         'address',
@@ -66,7 +69,16 @@ class Item extends Model
         'renewed_at',
     ];
 
-    protected $appends = ['translated_name', 'translated_description', 'image'];
+    protected $appends = [
+        'translated_name',
+        'translated_description',
+        'image',
+        'formatted_description',
+        'description_json',
+        'descriptionJson',
+        'extracted_contacts',
+        'extracted_links',
+    ];
 
     protected $with = ['translations'];
 
@@ -174,7 +186,43 @@ class Item extends Model
         return $this->hasMany(JobApplication::class);
     }
 
-    // Accessors
+    public function edited_images()
+    {
+        return $this->hasMany(EditedImage::class, 'item_id');
+    }
+
+    // Mutators & Accessors
+    public function setDescriptionAttribute($value)
+    {
+        $this->attributes['description'] = ContentFormatterService::cleanPlainText($value);
+    }
+
+    public function getDescriptionJsonAttribute($value)
+    {
+        return !empty($value) ? $value : ($this->attributes['description'] ?? '');
+    }
+
+    public function getDescriptionJsonCamelAttribute()
+    {
+        return $this->description_json;
+    }
+
+    public function getFormattedDescriptionAttribute()
+    {
+        $rich = !empty($this->attributes['description_json']) ? $this->attributes['description_json'] : ($this->attributes['description'] ?? '');
+        return ContentFormatterService::formatItemDescription($rich);
+    }
+
+    public function getExtractedContactsAttribute()
+    {
+        return ContentFormatterService::extractIndianMobileNumbers($this->description);
+    }
+
+    public function getExtractedLinksAttribute()
+    {
+        return ContentFormatterService::extractUrls($this->description);
+    }
+
     public function getImageAttribute($image)
     {
         if (empty($image) && $this->id) {

@@ -509,3 +509,7 @@
 </script>
 @endif
 
+{{-- Reusable Standalone Photo Editor Component --}}
+@include('components.photo-editor')
+
+

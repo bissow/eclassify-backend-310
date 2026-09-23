@@ -83,7 +83,7 @@
                                 </div>
 
                                         <div class="col-12 mb-3">
-                                            <div class="d-flex justify-content-between align-items-center">
+                                            <div class="d-flex justify-content-between align-items-center mb-1">
                                                 <label>{{ __('Description') }} <span class="text-danger">*</span></label>
                                                 @if($geminiEnabled ?? false)
                                                     <button type="button" class="btn btn-sm btn-outline-primary generate-description-btn">
@@ -92,7 +92,9 @@
                                                     </button>
                                                 @endif
                                             </div>
-                                            <textarea name="description" id="description-input" class="form-control" rows="5" required placeholder="{{ __('Enter description') }}">{{ old('description') }}</textarea>
+                                            <div id="quill-editor-default" class="quill-editor-container"></div>
+                                            <input type="hidden" name="description" id="description-input" value="{{ old('description') }}">
+                                            <input type="hidden" name="description_json" id="description-json-input" value="{{ old('description_json') }}">
                                         </div>
                                     </div>
                                 </div>
@@ -111,7 +113,7 @@
                                                 </div>
 
                                                 <div class="col-12 mb-3">
-                                                    <div class="d-flex justify-content-between align-items-center">
+                                                    <div class="d-flex justify-content-between align-items-center mb-1">
                                                         <label>{{ __('Description') }}</label>
                                                         @if($geminiEnabled ?? false)
                                                             <button type="button" class="btn btn-sm btn-outline-primary generate-description-btn">
@@ -120,10 +122,15 @@
                                                             </button>
                                                         @endif
                                                     </div>
-                                                    <textarea name="translations[{{ $lang->id }}][description]" 
-                                                        class="form-control translation-description" 
-                                                        data-lang-id="{{ $lang->id }}" rows="5"
-                                                        placeholder="{{ __('Enter description') }}"></textarea>
+                                                    <div id="quill-editor-{{ $lang->id }}" class="quill-editor-container translation-quill" data-lang-id="{{ $lang->id }}"></div>
+                                                    <input type="hidden" name="translations[{{ $lang->id }}][description]" 
+                                                        class="translation-description" 
+                                                        id="translation-description-{{ $lang->id }}"
+                                                        data-lang-id="{{ $lang->id }}">
+                                                    <input type="hidden" name="translations[{{ $lang->id }}][description_json]" 
+                                                        class="translation-description-json" 
+                                                        id="translation-description-json-{{ $lang->id }}"
+                                                        data-lang-id="{{ $lang->id }}">
                                                 </div>
                                             </div>
                                         </div>
@@ -704,6 +711,10 @@
 @endsection
 
 @section('script')
+    <!-- Quill Rich Text Editor CSS & JS -->
+    <link rel="stylesheet" href="{{ asset('assets/extensions/quill/quill.snow.css') }}">
+    <script src="{{ asset('assets/extensions/quill/quill.js') }}"></script>
+
     <!-- ffmpeg.wasm — client-side reel trim, always outputs mp4 (no server ffmpeg needed, works on shared hosting) -->
     <script src="{{ asset('assets/js/ffmpeg/ffmpeg.js') }}"></script>
     <script src="{{ asset('assets/js/ffmpeg/ffmpeg-util.js') }}"></script>
@@ -719,6 +730,23 @@
     <script src="{{ asset('assets/js/custom/item-map.js') }}"></script>
     
     <style>
+        .ql-editor {
+            min-height: 180px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        .ql-toolbar.ql-snow {
+            border-top-left-radius: 6px;
+            border-top-right-radius: 6px;
+            background: #f8fafc;
+            border-color: #cbd5e1;
+        }
+        .ql-container.ql-snow {
+            border-bottom-left-radius: 6px;
+            border-bottom-right-radius: 6px;
+            border-color: #cbd5e1;
+            background: #fff;
+        }
         /* ── Media Upload UI ── */
         .media-drop-zone {
             border: 1.5px dashed #bbb;
@@ -1790,8 +1818,119 @@
                 setTimeout(() => { initMap(); }, 300);
             });
 
+            // Initialize Quill Rich Text Editors for Item Descriptions
+            window.itemQuillInstances = {};
+
+            function getQuillToolbarOptions() {
+                return [
+                    [{ 'header': [1, 2, 3, false] }],
+                    ['bold', 'italic', 'underline', 'strike'],
+                    [{ 'color': [] }, { 'background': [] }],
+                    [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                    [{ 'align': [] }],
+                    ['link', 'image'],
+                    ['clean']
+                ];
+            }
+
+            function quillImageHandler(quillInstance) {
+                const input = document.createElement('input');
+                input.setAttribute('type', 'file');
+                input.setAttribute('accept', 'image/*');
+                input.click();
+
+                input.onchange = function() {
+                    const file = input.files[0];
+                    if (!file) return;
+
+                    const formData = new FormData();
+                    formData.append('image', file);
+                    formData.append('_token', $('meta[name="csrf-token"]').attr('content'));
+
+                    $.ajax({
+                        url: '{{ url("api/editor/upload-image") }}',
+                        method: 'POST',
+                        data: formData,
+                        processData: false,
+                        contentType: false,
+                        success: function(res) {
+                            if (!res.error && res.url) {
+                                const range = quillInstance.getSelection(true);
+                                quillInstance.insertEmbed(range.index, 'image', res.url);
+                                quillInstance.setSelection(range.index + 1);
+                            } else {
+                                Toastify({ text: res.message || '{{ __("Failed to upload image") }}', duration: 4000, close: true, backgroundColor: '#dc3545' }).showToast();
+                            }
+                        },
+                        error: function() {
+                            Toastify({ text: '{{ __("Image upload failed") }}', duration: 4000, close: true, backgroundColor: '#dc3545' }).showToast();
+                        }
+                    });
+                };
+            }
+
+            function initQuillEditor(containerId, plainInputId, jsonInputId) {
+                const container = document.getElementById(containerId);
+                if (!container || typeof Quill === 'undefined') return null;
+
+                const quill = new Quill(container, {
+                    theme: 'snow',
+                    placeholder: '{{ __("Enter description...") }}',
+                    modules: {
+                        toolbar: getQuillToolbarOptions()
+                    }
+                });
+
+                // Custom image handler
+                const toolbar = quill.getModule('toolbar');
+                if (toolbar) {
+                    toolbar.addHandler('image', function() {
+                        quillImageHandler(quill);
+                    });
+                }
+
+                // Sync function
+                function syncInputs() {
+                    const plainText = quill.getText().trim();
+                    const delta = quill.getContents();
+                    const isBlank = quill.getText().trim().length === 0 && (!delta.ops || delta.ops.length <= 1);
+                    
+                    const pInput = document.getElementById(plainInputId);
+                    const jInput = document.getElementById(jsonInputId);
+
+                    if (pInput) pInput.value = plainText;
+                    if (jInput) jInput.value = isBlank ? '' : JSON.stringify(delta);
+                }
+
+                quill.on('text-change', syncInputs);
+                return quill;
+            }
+
+            // Init Default Language Quill
+            if (document.getElementById('quill-editor-default')) {
+                window.itemQuillInstances['default'] = initQuillEditor('quill-editor-default', 'description-input', 'description-json-input');
+            }
+
+            // Init Translation Quills
+            document.querySelectorAll('.translation-quill').forEach(function(el) {
+                const langId = el.getAttribute('data-lang-id');
+                window.itemQuillInstances[langId] = initQuillEditor('quill-editor-' + langId, 'translation-description-' + langId, 'translation-description-json-' + langId);
+            });
+
+            // Global helper to sync all Quills
+            window.syncAllQuills = function() {
+                Object.values(window.itemQuillInstances).forEach(function(q) {
+                    if (q) {
+                        q.emitter.emit('text-change');
+                    }
+                });
+            };
+
             // Validation function for current tab
             function validateCurrentTab(tabId) {
+                if (window.syncAllQuills) {
+                    window.syncAllQuills();
+                }
                 let isValid = true;
                 let firstInvalidField = null;
 
@@ -1803,7 +1942,8 @@
                     }
                 } else if (tabId === 'listing') {
                     const name = $('#name-input').val().trim();
-                    const description = $('#description-input').val().trim();
+                    const defaultQuill = window.itemQuillInstances['default'];
+                    const description = defaultQuill ? defaultQuill.getText().trim() : $('#description-input').val().trim();
                     const price = $('#price-input').val();
                     const minSalary = $('#min-salary-input').val();
                     const maxSalary = $('#max-salary-input').val();
@@ -1815,7 +1955,7 @@
                         isValid = false;
                     } else if (!description) {
                         showErrorToast(window.trans('Please enter a english description.'));
-                        $('#description-input').focus();
+                        if (defaultQuill) defaultQuill.focus();
                         isValid = false;
                     } else if ($('#price-field').css('display') !== 'none' && $('#price-input').attr('required') && !price) {
                         showErrorToast(window.trans('Please enter a price.'));
@@ -2170,10 +2310,11 @@
                     wrap.innerHTML = `
                         <img src="${imgSrc}" alt="">
                         ${i === 0 ? '<span class="cover-badge">Cover</span>' : ''}
+                        <span class="edit-thumb edit-gallery-image" data-index="${i}" title="{{ __('Edit Image') }}" style="position: absolute; top: 4px; left: 4px; background: rgba(15,23,42,0.85); color: #fff; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 10px; cursor: pointer; z-index: 5;"><i class="fas fa-pencil-alt"></i></span>
                         <span class="remove-thumb remove-gallery-image" data-index="${i}">✕</span>
                     `;
                     wrap.addEventListener('click', function(e) {
-                        if (e.target.classList.contains('remove-thumb') || e.target.closest('.remove-thumb')) {
+                        if (e.target.classList.contains('remove-thumb') || e.target.closest('.remove-thumb') || e.target.classList.contains('edit-thumb') || e.target.closest('.edit-thumb')) {
                             return;
                         }
                         openAllImagesModal();
@@ -2221,11 +2362,36 @@
                     wrap.innerHTML = `
                         <img src="${imgSrc}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 6px; border: 1px solid #e5e7eb;" alt="">
                         ${i === 0 ? '<span class="cover-badge" style="position: absolute; bottom: 0; left: 0; right: 0; background: var(--bs-primary); color: #fff; text-align: center; font-size: 11px;">Cover</span>' : ''}
+                        <span class="edit-thumb edit-gallery-image" data-index="${i}" title="{{ __('Edit Image') }}" style="position: absolute; top: 4px; left: 4px; background: rgba(15,23,42,0.85); color: #fff; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 10px; cursor: pointer; z-index: 5;"><i class="fas fa-pencil-alt"></i></span>
                         <span class="remove-thumb remove-gallery-image-modal" data-index="${i}" style="position: absolute; top: -6px; right: -6px; width: 20px; height: 20px; background: #fff; border: 1px solid #ddd; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 11px; line-height: 1;">✕</span>
                     `;
                     grid.appendChild(wrap);
                 });
             };
+
+            $(document).on('click', '.edit-gallery-image', function(e) {
+                e.stopPropagation();
+                e.preventDefault();
+                const index = parseInt($(this).data('index'));
+                const file = galleryFiles[index];
+                if (!file) return;
+
+                if (window.PhotoEditor) {
+                    window.PhotoEditor.open({
+                        file: file,
+                        onSave: function(blob, newFile, dataUrl) {
+                            galleryFiles[index] = newFile;
+                            renderGalleryPreview();
+                            if (typeof renderModalImages === 'function') {
+                                renderModalImages();
+                            }
+                            if (typeof Toastify !== 'undefined') {
+                                Toastify({ text: '{{ __("Image edited successfully!") }}', duration: 3000, close: true, backgroundColor: 'linear-gradient(to right, #00b09b, #96c93d)' }).showToast();
+                            }
+                        }
+                    });
+                }
+            });
 
             $(document).on('click', '.remove-gallery-image-modal', function(e) {
                 e.stopPropagation();
@@ -2352,7 +2518,13 @@
                     },
                     success: function(response) {
                         if (!response.error && response.data) {
-                            $desc.val(response.data.description);
+                            const newDesc = response.data.description || '';
+                            $desc.val(newDesc);
+                            const quillInst = isDefault ? window.itemQuillInstances['default'] : window.itemQuillInstances[langId];
+                            if (quillInst) {
+                                quillInst.setText(newDesc);
+                                if (window.syncAllQuills) window.syncAllQuills();
+                            }
                             Toastify({ text: '{{ __("Description generated successfully") }}', duration: 3000, close: true, backgroundColor: 'linear-gradient(to right, #00b09b, #96c93d)' }).showToast();
                         } else {
                             Toastify({ text: response.message || '{{ __("Failed to generate description") }}', duration: 3000, close: true, backgroundColor: '#dc3545' }).showToast();
@@ -2380,9 +2552,9 @@
                 const title = isDefaultLang
                     ? $('#name-input').val()
                     : $(`input.translation-name[data-lang-id="${selectedSeoLangId}"]`).val();
-                const description = isDefaultLang
-                    ? $('#description-input').val()
-                    : $(`textarea.translation-description[data-lang-id="${selectedSeoLangId}"]`).val();
+                const defaultQuill = window.itemQuillInstances['default'];
+                const targetQuill = isDefaultLang ? defaultQuill : window.itemQuillInstances[selectedSeoLangId];
+                const description = targetQuill ? targetQuill.getText().trim() : (isDefaultLang ? $('#description-input').val() : $(`#translation-description-${selectedSeoLangId}`).val());
 
                 if (!title || !title.trim() || !description || !description.trim()) {
                     Toastify({ text: '{{ __("Please enter title and description for the selected language first") }}', duration: 3000, close: true, backgroundColor: '#dc3545' }).showToast();
@@ -2432,8 +2604,12 @@
             @if($languages->count() > 1)
             // Auto Translate — open modal
             $('#auto-translate-btn').on('click', function() {
+                if (window.syncAllQuills) {
+                    window.syncAllQuills();
+                }
                 const name = $('#name-input').val().trim();
-                const description = $('#description-input').val().trim();
+                const defaultQuill = window.itemQuillInstances['default'];
+                const description = defaultQuill ? defaultQuill.getText().trim() : $('#description-input').val().trim();
                 if (!name || !description) {
                     Toastify({ text: '{{ __("Please enter title and description in the default language first") }}', duration: 3000, close: true, backgroundColor: '#dc3545' }).showToast();
                     return;
@@ -2445,23 +2621,26 @@
             $('#at-deselect-all').on('click', function(e) { e.preventDefault(); $('.at-lang-check').prop('checked', false); });
 
             $('#at-confirm-btn').on('click', function() {
-                const selectedIds = $('.at-lang-check:checked').map(function() { return $(this).val(); }).get();
-                if (!selectedIds.length) {
-                    Toastify({ text: '{{ __("Please select at least one language") }}', duration: 3000, close: true, backgroundColor: '#dc3545' }).showToast();
+                if (window.syncAllQuills) {
+                    window.syncAllQuills();
+                }
+                const selectedIds = [];
+                $('.at-lang-checkbox:checked').each(function() {
+                    selectedIds.push($(this).val());
+                });
+
+                if (selectedIds.length === 0) {
+                    $('#at-error-alert').removeClass('d-none').text('{{ __("Please select at least one target language") }}');
                     return;
                 }
 
-                const btn = $(this);
-                const spinner = $('#auto-translate-loading');
-                btn.prop('disabled', true);
-                spinner.removeClass('d-none');
-
+                // Gather non-empty translatable custom fields from DOM (rendered in custom tab)
                 const customFields = {};
-                $('#custom .custom-fields-language-section[data-language-id="{{ $defaultLanguage->id }}"] .custom-field-input').each(function() {
+                $('#custom-fields-container input[name^="custom_fields["]').each(function() {
                     const $el = $(this);
-                    const fieldName = $el.attr('name') || '';
-                    const match = fieldName.match(/^custom_fields\[(\d+)\]$/);
-                    if (match && $el.val().trim() !== '') {
+                    const name = $el.attr('name');
+                    const match = name.match(/custom_fields\[(\d+)\]/);
+                    if (match && $el.val().trim()) {
                         const elType = $el.attr('type');
                         if (elType === 'text' || elType === 'number') {
                             customFields[match[1]] = $el.val().trim();
@@ -2469,9 +2648,17 @@
                     }
                 });
 
+                const btn = $(this);
+                const spinner = $('#auto-translate-loading');
+                btn.prop('disabled', true);
+                spinner.removeClass('d-none');
+
+                const defaultQuill = window.itemQuillInstances['default'];
+                const defaultDesc = defaultQuill ? defaultQuill.getText().trim() : $('#description-input').val().trim();
+
                 const postData = {
                     name: $('#name-input').val().trim(),
-                    description: $('#description-input').val().trim(),
+                    description: defaultDesc,
                     source_language_id: {{ $defaultLanguage->id }},
                     custom_fields: customFields,
                 };
@@ -2500,7 +2687,12 @@
                             let firstLangId = null;
                             Object.entries(translations).forEach(function([langId, fields]) {
                                 $(`input.translation-name[data-lang-id="${langId}"]`).val(fields.name || '');
-                                $(`textarea.translation-description[data-lang-id="${langId}"]`).val(fields.description || '');
+                                const transDesc = fields.description || '';
+                                $(`#translation-description-${langId}`).val(transDesc);
+                                const qInst = window.itemQuillInstances[langId];
+                                if (qInst) {
+                                    qInst.setText(transDesc);
+                                }
                                 if (fields.custom_fields && typeof fields.custom_fields === 'object') {
                                     Object.entries(fields.custom_fields).forEach(function([fieldId, value]) {
                                         $(`input[name="custom_field_translations[${langId}][${fieldId}]"]`).val(value || '');
@@ -2508,6 +2700,7 @@
                                 }
                                 if (!firstLangId) firstLangId = langId;
                             });
+                            if (window.syncAllQuills) window.syncAllQuills();
                             bootstrap.Modal.getInstance(document.getElementById('autoTranslateModal')).hide();
                             if (firstLangId) $('#details-language-selector').val(firstLangId).trigger('change');
                             Toastify({ text: '{{ __("Content translated successfully") }}', duration: 3000, close: true, backgroundColor: 'linear-gradient(to right, #00b09b, #96c93d)' }).showToast();
