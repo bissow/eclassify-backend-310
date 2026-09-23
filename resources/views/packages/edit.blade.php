@@ -156,7 +156,7 @@
                                             <div class="row form-group">
                                                 <label>{{ __('Package Type') }} <span class="text-danger">*</span></label>
                                                 <small class="text-muted d-block mb-2">{{ __('Package type cannot be changed after creation.') }}</small>
-                                                <div class="col-md-6">
+                                                <div class="col-md-4">
                                                     <div class="form-check">
                                                         <input class="form-check-input package-type-radio"
                                                             type="radio" name="type" id="type_item_listing"
@@ -167,7 +167,7 @@
                                                         </label>
                                                     </div>
                                                 </div>
-                                                <div class="col-md-6">
+                                                <div class="col-md-4">
                                                     <div class="form-check">
                                                         <input class="form-check-input package-type-radio"
                                                             type="radio" name="type" id="type_advertisement"
@@ -175,6 +175,17 @@
                                                             disabled>
                                                         <label class="form-check-label" for="type_advertisement">
                                                             {{ __('Featured Ads Package') }}
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input package-type-radio"
+                                                            type="radio" name="type" id="type_promotional"
+                                                            value="promotional" {{ $package->type == 'promotional' ? 'checked' : '' }}
+                                                            disabled>
+                                                        <label class="form-check-label" for="type_promotional">
+                                                            {{ __('Promotional / Offer Package') }}
                                                         </label>
                                                     </div>
                                                 </div>
@@ -349,6 +360,96 @@
                                                         </div>
                                                     </div>
 
+                                                </div>
+                                            </div>
+
+                                            {{-- Promotional & Marketing Features Section --}}
+                                            <div id="promotional_features_section" class="border rounded p-3 mb-3 border-primary">
+                                                <h6 class="mb-3 text-primary"><i class="bi bi-tag-fill me-2"></i>{{ __('Promotions & Ad Marketing Features') }}</h6>
+                                                <small class="text-muted d-block mb-3">{{ __('Configure special promotional permissions, ad bump-ups, top ads, and spotlight badges for subscribers of this package.') }}</small>
+
+                                                {{-- Allow Promotions --}}
+                                                <div class="row mb-3">
+                                                    <div class="col-md-6">
+                                                        <div class="form-check form-switch">
+                                                            <input class="form-check-input" type="checkbox"
+                                                                name="allows_promotions" id="allows_promotions" value="1"
+                                                                {{ old('allows_promotions', $package->allows_promotions) ? 'checked' : '' }}>
+                                                            <label class="form-check-label fw-bold" for="allows_promotions">
+                                                                {{ __('Allow Sales & Campaign Promotions') }}
+                                                            </label>
+                                                        </div>
+                                                        <small class="text-muted">{{ __('Allows users to submit items to Flash Sales, Clearance Sales, and Deals of the Day.') }}</small>
+                                                    </div>
+                                                    <div class="col-md-6" id="promotional_item_limit_group" style="{{ old('allows_promotions', $package->allows_promotions) ? '' : 'display: none;' }}">
+                                                        <label class="form-label">{{ __('Max Promotional Items Allowed') }}</label>
+                                                        <input type="number" name="promotion_item_limit" class="form-control" min="0"
+                                                            value="{{ old('promotion_item_limit', $package->promotion_item_limit ?? 0) }}" placeholder="{{ __('0 for unlimited, or specific quota') }}">
+                                                        <small class="text-muted">{{ __('Set to 0 for unlimited promotional submissions during package validity.') }}</small>
+                                                    </div>
+                                                </div>
+
+                                                <hr class="my-3">
+
+                                                {{-- Daily Bump Up --}}
+                                                <div class="row mb-3">
+                                                    <div class="col-md-6">
+                                                        <div class="form-check form-switch">
+                                                            <input class="form-check-input" type="checkbox"
+                                                                name="allows_daily_bump_up" id="allows_daily_bump_up" value="1"
+                                                                {{ old('allows_daily_bump_up', $package->allows_daily_bump_up) ? 'checked' : '' }}>
+                                                            <label class="form-check-label fw-bold" for="allows_daily_bump_up">
+                                                                {{ __('Allow Daily Bump Up') }}
+                                                            </label>
+                                                        </div>
+                                                        <small class="text-muted">{{ __('Renews the ad creation date to push it back to the top of standard search results once every 24 hours.') }}</small>
+                                                    </div>
+                                                    <div class="col-md-6" id="daily_bump_limit_group" style="{{ old('allows_daily_bump_up', $package->allows_daily_bump_up) ? '' : 'display: none;' }}">
+                                                        <label class="form-label">{{ __('Max Bump Ups Allowed') }}</label>
+                                                        <input type="number" name="daily_bump_up_limit" class="form-control" min="0"
+                                                            value="{{ old('daily_bump_up_limit', $package->daily_bump_up_limit ?? 0) }}" placeholder="{{ __('0 for unlimited, or specific quota') }}">
+                                                        <small class="text-muted">{{ __('Total bump ups allowed during package lifetime (0 = unlimited).') }}</small>
+                                                    </div>
+                                                </div>
+
+                                                <hr class="my-3">
+
+                                                {{-- Top Ad and Spotlight --}}
+                                                <div class="row">
+                                                    <div class="col-md-6 mb-3">
+                                                        <div class="form-check form-switch">
+                                                            <input class="form-check-input" type="checkbox"
+                                                                name="allows_top_ad" id="allows_top_ad" value="1"
+                                                                {{ old('allows_top_ad', $package->allows_top_ad) ? 'checked' : '' }}>
+                                                            <label class="form-check-label fw-bold" for="allows_top_ad">
+                                                                {{ __('Allow "Top Ad" Boost') }}
+                                                            </label>
+                                                        </div>
+                                                        <small class="text-muted">{{ __('Grants priority top ranking placement with high-visibility badges.') }}</small>
+                                                        <div id="top_ad_limit_group" style="{{ old('allows_top_ad', $package->allows_top_ad) ? '' : 'display: none;' }}" class="mt-2">
+                                                            <label class="form-label">{{ __('Max "Top Ad" Items Allowed') }}</label>
+                                                            <input type="number" name="top_ad_limit" class="form-control" min="0"
+                                                                value="{{ old('top_ad_limit', $package->top_ad_limit ?? 0) }}" placeholder="{{ __('0 for unlimited, or specific quota') }}">
+                                                            <small class="text-muted">{{ __('0 for unlimited during package validity.') }}</small>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-6 mb-3">
+                                                        <div class="form-check form-switch">
+                                                            <input class="form-check-input" type="checkbox"
+                                                                name="allows_spotlight" id="allows_spotlight" value="1"
+                                                                {{ old('allows_spotlight', $package->allows_spotlight) ? 'checked' : '' }}>
+                                                            <label class="form-check-label fw-bold" for="allows_spotlight">
+                                                                {{ __('Allow "Spotlight" Carousel') }}
+                                                            </label>
+                                                        </div>
+                                                        <small class="text-muted">{{ __('Showcases the ad on the homepage spotlight carousel & offer page banner hero.') }}</small>
+                                                        <div id="spotlight_limit_group" style="{{ old('allows_spotlight', $package->allows_spotlight) ? '' : 'display: none;' }}" class="mt-2">
+                                                            <label class="form-label">{{ __('Max "Spotlight" Items Allowed') }}</label>
+                                                            <input type="number" name="spotlight_limit" class="form-control" min="0"
+                                                                value="{{ old('spotlight_limit', $package->spotlight_limit ?? 0) }}" placeholder="{{ __('0 for unlimited, or specific quota') }}">
+                                                            <small class="text-muted">{{ __('0 for unlimited during package validity.') }}</small>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
 
@@ -540,8 +641,45 @@
                     $('#ad_listing_section').hide();
                     $('#featured_ads_section').show();
                     $('#is_global').prop('checked', true).prop('disabled', true);
+                } else if (selectedType === 'promotional') {
+                    $('#ad_listing_section').hide();
+                    $('#featured_ads_section').hide();
+                    $('#is_global').prop('checked', true).prop('disabled', true);
                     $('.category-checkbox').prop('checked', false).prop('disabled', true);
                     $('#category_selection').hide();
+                }
+            });
+
+            // Promotional toggles
+            $('#allows_promotions').on('change', function() {
+                if ($(this).is(':checked')) {
+                    $('#promotional_item_limit_group').show();
+                } else {
+                    $('#promotional_item_limit_group').hide();
+                }
+            });
+
+            $('#allows_daily_bump_up').on('change', function() {
+                if ($(this).is(':checked')) {
+                    $('#daily_bump_limit_group').show();
+                } else {
+                    $('#daily_bump_limit_group').hide();
+                }
+            });
+
+            $('#allows_top_ad').on('change', function() {
+                if ($(this).is(':checked')) {
+                    $('#top_ad_limit_group').show();
+                } else {
+                    $('#top_ad_limit_group').hide();
+                }
+            });
+
+            $('#allows_spotlight').on('change', function() {
+                if ($(this).is(':checked')) {
+                    $('#spotlight_limit_group').show();
+                } else {
+                    $('#spotlight_limit_group').hide();
                 }
             });
             

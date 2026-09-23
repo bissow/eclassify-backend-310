@@ -4,6 +4,10 @@ use App\Http\Controllers\AdminChatController;
 use App\Http\Controllers\BannerAdController;
 use App\Http\Controllers\BlogController;
 use App\Http\Controllers\BlogCategoryController;
+use App\Http\Controllers\CampaignController;
+use App\Http\Controllers\PromotionController;
+use App\Http\Controllers\PromotionItemController;
+use App\Http\Controllers\ItemAdPromotionController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\CurrencyController;
@@ -465,6 +469,41 @@ Route::group(['middleware' => ['auth', 'language']], static function () {
     Route::resource('package', PackageController::class);
     Route::put('package/{id}/discontinue', [PackageController::class, 'discontinue'])->name('package.discontinue');
     /*** Package Module : ENDS ***/
+
+    /*** Campaigns & Promotions Module : START ***/
+    Route::group(['prefix' => 'campaigns'], static function () {
+        Route::get('/', [CampaignController::class, 'index'])->name('campaigns.index');
+        Route::get('/show', [CampaignController::class, 'show'])->name('campaigns.show');
+        Route::post('/store', [CampaignController::class, 'store'])->name('campaigns.store');
+        Route::post('/update', [CampaignController::class, 'update'])->name('campaigns.update');
+        Route::post('/status-update', [CampaignController::class, 'updateStatus'])->name('campaigns.status.update');
+        Route::delete('/{id}', [CampaignController::class, 'destroy'])->name('campaigns.destroy');
+    });
+
+    Route::group(['prefix' => 'promotions'], static function () {
+        Route::get('/', [PromotionController::class, 'index'])->name('promotions.index');
+        Route::get('/show', [PromotionController::class, 'show'])->name('promotions.show');
+        Route::post('/store', [PromotionController::class, 'store'])->name('promotions.store');
+        Route::post('/update', [PromotionController::class, 'update'])->name('promotions.update');
+        Route::post('/status-update', [PromotionController::class, 'updateStatus'])->name('promotions.status.update');
+        Route::delete('/{id}', [PromotionController::class, 'destroy'])->name('promotions.destroy');
+
+        // Promotion Items (Submissions)
+        Route::get('/items', [PromotionItemController::class, 'index'])->name('promotions.items');
+        Route::get('/items/show', [PromotionItemController::class, 'show'])->name('promotions.items.show');
+        Route::post('/items/update', [PromotionItemController::class, 'update'])->name('promotions.items.update');
+        Route::delete('/items/{id}', [PromotionItemController::class, 'destroy'])->name('promotions.items.destroy');
+    });
+
+    Route::group(['prefix' => 'ad-promotions'], static function () {
+        Route::get('/', [ItemAdPromotionController::class, 'index'])->name('ad-promotions.index');
+        Route::get('/show', [ItemAdPromotionController::class, 'show'])->name('ad-promotions.show');
+        Route::get('/user-analytics', [ItemAdPromotionController::class, 'userAnalytics'])->name('ad-promotions.user-analytics');
+        Route::get('/user-analytics/data', [ItemAdPromotionController::class, 'userAnalyticsData'])->name('ad-promotions.user-analytics.data');
+        Route::get('/user-analytics/history', [ItemAdPromotionController::class, 'userAnalyticsHistory'])->name('ad-promotions.user-analytics.history');
+        Route::delete('/{id}', [ItemAdPromotionController::class, 'destroy'])->name('ad-promotions.destroy');
+    });
+    /*** Campaigns & Promotions Module : END ***/
 
     /*** Report Reason Module : START ***/
     // Route::group(['prefix' => 'report-reasons'], static function () {

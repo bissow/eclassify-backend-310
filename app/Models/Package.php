@@ -32,6 +32,15 @@ class Package extends Model {
         'is_reel_allowed',
         'is_discontinued',
         'discontinued_at',
+        'allows_promotions',
+        'promotion_item_limit',
+        'allowed_promotion_types',
+        'allows_daily_bump_up',
+        'daily_bump_up_limit',
+        'allows_top_ad',
+        'top_ad_limit',
+        'allows_spotlight',
+        'spotlight_limit',
     ];
     protected $appends = ['translated_name', 'translated_description','translated_key_points'];
     
@@ -166,10 +175,38 @@ class Package extends Model {
     protected function casts(): array
     {
         return [
-            'duration' => 'integer',
-            'listing_duration_days' => 'integer',
+            'duration'                 => 'integer',
+            'listing_duration_days'    => 'integer',
+            'allows_promotions'        => 'boolean',
+            'promotion_item_limit'     => 'integer',
+            'allowed_promotion_types'  => 'array',
+            'allows_daily_bump_up'     => 'boolean',
+            'daily_bump_up_limit'      => 'integer',
+            'allows_top_ad'            => 'boolean',
+            'top_ad_limit'             => 'integer',
+            'allows_spotlight'         => 'boolean',
+            'spotlight_limit'          => 'integer',
         ];
     }
 
+    public function allowsPromotions(): bool
+    {
+        return (bool) ($this->allows_promotions || $this->type === 'promotional');
+    }
 
+    public function allowsDailyBumpUp(): bool
+    {
+        return (bool) $this->allows_daily_bump_up;
+    }
+
+    public function allowsTopAd(): bool
+    {
+        return (bool) $this->allows_top_ad;
+    }
+
+    public function allowsSpotlight(): bool
+    {
+        return (bool) $this->allows_spotlight;
+    }
 }
+

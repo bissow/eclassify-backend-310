@@ -19,7 +19,18 @@ class UserPurchasedPackage extends Model {
         'used_limit',
         'payment_transactions_id',
         'listing_duration_type' ,
-        'listing_duration_days' 
+        'listing_duration_days',
+        'used_promotions_limit',
+        'used_daily_bump_up_limit',
+        'used_top_ad_limit',
+        'used_spotlight_limit',
+    ];
+
+    protected $casts = [
+        'used_promotions_limit'    => 'integer',
+        'used_daily_bump_up_limit' => 'integer',
+        'used_top_ad_limit'        => 'integer',
+        'used_spotlight_limit'     => 'integer',
     ];
 
     protected $appends = ['remaining_days', 'remaining_item_limit', 'status'];
@@ -89,4 +100,61 @@ class UserPurchasedPackage extends Model {
         });
         return $query;
     }
+
+    public function canAddPromotionItem(): bool
+    {
+        if (!$this->package || !$this->package->allowsPromotions()) {
+            return false;
+        }
+
+        $limit = $this->package->promotion_item_limit;
+        if (is_null($limit) || $limit === 0) {
+            return true; // Unlimited
+        }
+
+        return $this->used_promotions_limit < $limit;
+    }
+
+    public function canUseDailyBump(): bool
+    {
+        if (!$this->package || !$this->package->allowsDailyBumpUp()) {
+            return false;
+        }
+
+        $limit = $this->package->daily_bump_up_limit;
+        if (is_null($limit) || $limit === 0) {
+            return true;
+        }
+
+        return $this->used_daily_bump_up_limit < $limit;
+    }
+
+    public function canUseTopAd(): bool
+    {
+        if (!$this->package || !$this->package->allowsTopAd()) {
+            return false;
+        }
+
+        $limit = $this->package->top_ad_limit;
+        if (is_null($limit) || $limit === 0) {
+            return true;
+        }
+
+        return $this->used_top_ad_limit < $limit;
+    }
+
+    public function canUseSpotlight(): bool
+    {
+        if (!$this->package || !$this->package->allowsSpotlight()) {
+            return false;
+        }
+
+        $limit = $this->package->spotlight_limit;
+        if (is_null($limit) || $limit === 0) {
+            return true;
+        }
+
+        return $this->used_spotlight_limit < $limit;
+    }
 }
+

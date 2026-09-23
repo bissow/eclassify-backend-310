@@ -119,6 +119,26 @@ class Item extends Model
         return $this->hasMany(FeaturedItems::class)->onlyActive();
     }
 
+    public function promotion_items()
+    {
+        return $this->hasMany(PromotionItem::class);
+    }
+
+    public function active_promotion_items()
+    {
+        return $this->hasMany(PromotionItem::class)->available();
+    }
+
+    public function ad_promotions()
+    {
+        return $this->hasMany(ItemAdPromotion::class);
+    }
+
+    public function active_ad_promotions()
+    {
+        return $this->hasMany(ItemAdPromotion::class)->active();
+    }
+
     public function favourites()
     {
         return $this->hasMany(Favourite::class);
@@ -391,4 +411,110 @@ class Item extends Model
     {
         return $this->getTranslatedValue('description', $this->description);
     }
+
+    public function scopeTopAds($query)
+    {
+        return $query->whereHas('ad_promotions', function ($q) {
+            $q->topAds();
+        });
+    }
+
+    public function scopeSpotlight($query)
+    {
+        return $query->whereHas('ad_promotions', function ($q) {
+            $q->spotlight();
+        });
+    }
+
+    public function scopeInPromotions($query, $promotionId = null)
+    {
+        return $query->whereHas('promotion_items', function ($q) use ($promotionId) {
+            $q->available();
+            if ($promotionId) {
+                $q->where('promotion_id', $promotionId);
+            }
+        });
+    }
+
+    public function getIsTopAdAttribute(): bool
+    {
+        if ($this->relationLoaded('ad_promotions')) {
+            return $this->ad_promotions->where('promotion_type', 'top_ad')->where('is_active', true)->isNotEmpty();
+        }
+        return $this->ad_promotions()->topAds()->exists();
+    }
+
+    public function getIsSpotlightAttribute(): bool
+    {
+        if ($this->relationLoaded('ad_promotions')) {
+            return $this->ad_promotions->where('promotion_type', 'spotlight')->where('is_active', true)->isNotEmpty();
+        }
+        return $this->ad_promotions()->spotlight()->exists();
+    }
+
+    public function getIsDailyBumpedAttribute(): bool
+    {
+        if ($this->relationLoaded('ad_promotions')) {
+            return $this->ad_promotions->where('promotion_type', 'daily_bump_up')->where('is_active', true)->isNotEmpty();
+        }
+        return $this->ad_promotions()->dailyBump()->exists();
+    }
+
+    public function getActivePromotionsAttribute(): array
+    {
+        $salesItems = $this->relationLoaded('active_promotion_items')
+            ? $this->active_promotion_items
+            : $this->active_promotion_items()->with(['promotion.campaign', 'promotion.translations'])->get();
+
+        $boosts = $this->relationLoaded('active_ad_promotions')
+            ? $this->active_ad_promotions
+            : $this->active_ad_promotions()->get();
+
+        $promotionsList = [];
+        foreach ($salesItems as $pi) {
+            $promotionsList[] = [
+                'id'                     => $pi->id,
+                'promotion_id'           => $pi->promotion_id,
+                'promotion_title'        => $pi->promotion?->translated_title ?? $pi->promotion?->title,
+                'promotion_type'         => $pi->promotion?->promotion_type,
+                'campaign_id'            => $pi->promotion?->campaign_id,
+                'campaign_title'         => $pi->promotion?->campaign?->title,
+                'campaign_slug'          => $pi->promotion?->campaign?->slug,
+                'promotional_price'      => (float) $pi->promotional_price,
+                'discount_value'         => (float) $pi->discount_value,
+                'discount_type'          => $pi->discount_type,
+                'discount_percentage'    => $pi->discount_percentage,
+                'stock_quantity'         => $pi->stock_quantity,
+                'remaining_stock_quantity' => $pi->remaining_stock_quantity,
+                'claimed_count'          => max(0, $pi->stock_quantity - $pi->remaining_stock_quantity),
+                'valid_until'            => $pi->valid_until?->toIso8601String(),
+                'status'                 => $pi->status,
+            ];
+        }
+
+        $boostsList = [];
+        foreach ($boosts as $b) {
+            $boostsList[] = [
+                'id'             => $b->id,
+                'promotion_type' => $b->promotion_type,
+                'type_title'     => $b->type_title,
+                'start_date'     => $b->start_date?->toIso8601String(),
+                'end_date'       => $b->end_date?->toIso8601String(),
+                'last_bumped_at' => $b->last_bumped_at?->toIso8601String(),
+                'status'         => $b->status,
+                'is_active'      => $b->is_active,
+            ];
+        }
+
+        return [
+            'has_active_promotions' => count($promotionsList) > 0 || count($boostsList) > 0,
+            'is_top_ad'             => $this->is_top_ad,
+            'is_spotlight'          => $this->is_spotlight,
+            'is_daily_bumped'       => $this->is_daily_bumped,
+            'sales'                 => $promotionsList,
+            'boosts'                => $boostsList,
+        ];
+    }
 }
+
+

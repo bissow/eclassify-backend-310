@@ -154,6 +154,43 @@
                     </li>
                 @endcanany
 
+                @canany(['campaign-list', 'campaign-create', 'campaign-update', 'campaign-delete',
+                    'promotion-list', 'promotion-create', 'promotion-update', 'promotion-delete',
+                    'promotion-item-list', 'promotion-item-update', 'promotion-item-delete',
+                    'ad-promotion-list', 'ad-promotion-update', 'ad-promotion-delete'])
+                    <li class="sidebar-item has-sub">
+                        <a href="#" class='sidebar-link'>
+                            <i class="ph ph-percent"></i>
+                            <span class="menu-item">{{ __('Promotions & Campaigns') }}</span>
+                        </a>
+                        <ul class="submenu" style="padding-inline-start: 0rem">
+                            @canany(['campaign-list', 'campaign-create', 'campaign-update', 'campaign-delete'])
+                                <li class="submenu-item">
+                                    <a href="{{ route('campaigns.index') }}">{{ __('Campaigns') }}</a>
+                                </li>
+                            @endcanany
+                            @canany(['promotion-list', 'promotion-create', 'promotion-update', 'promotion-delete'])
+                                <li class="submenu-item">
+                                    <a href="{{ route('promotions.index') }}">{{ __('Promotions & Offer Zones') }}</a>
+                                </li>
+                            @endcanany
+                            @canany(['promotion-item-list', 'promotion-item-update', 'promotion-item-delete'])
+                                <li class="submenu-item">
+                                    <a href="{{ route('promotions.items') }}">{{ __('Promotional Items') }}</a>
+                                </li>
+                            @endcanany
+                            @canany(['ad-promotion-list', 'ad-promotion-update', 'ad-promotion-delete'])
+                                <li class="submenu-item">
+                                     <a href="{{ route('ad-promotions.index') }}">{{ __('Promoted Ads') }}</a>
+                                </li>
+                                <li class="submenu-item">
+                                     <a href="{{ route('ad-promotions.user-analytics') }}">{{ __('User Promotions Analytics') }}</a>
+                                </li>
+                            @endcanany
+                        </ul>
+                    </li>
+                @endcanany
+
                 @canany(['seller-verification-field-list', 'seller-verification-field-create',
                     'seller-verification-field-update', 'seller-verification-field-delete',
                     'seller-verification-request-list', 'seller-verification-request-create',

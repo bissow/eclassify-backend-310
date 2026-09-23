@@ -98,6 +98,15 @@
         delete: @json(\App\Services\BootstrapTableService::icon('delete')),
         view: @json(\App\Services\BootstrapTableService::icon('view')),
     };
+
+    // Ensure global toastr shim pointing to Toastify functions for compatibility
+    window.toastr = {
+        success: function(msg) { typeof showSuccessToast === 'function' ? showSuccessToast(msg) : alert(msg); },
+        error: function(msg) { typeof showErrorToast === 'function' ? showErrorToast(msg) : alert(msg); },
+        warning: function(msg) { typeof showWarningToast === 'function' ? showWarningToast(msg) : alert(msg); },
+        info: function(msg) { typeof showSuccessToast === 'function' ? showSuccessToast(msg) : alert(msg); }
+    };
+
     @if (Session::has('success'))
     showSuccessToast("{{ Session::get('success') }}")
     @endif

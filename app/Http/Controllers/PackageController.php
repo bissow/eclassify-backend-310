@@ -87,7 +87,7 @@ class PackageController extends Controller {
             'final_price'            => 'required|numeric',
             'package_duration_type'  => 'required|in:limited,unlimited',
             'duration'               => ($request->package_duration_type === 'limited') ? 'required|integer|min:1' : 'nullable',
-            'type'                   => 'required|in:item_listing,advertisement',
+            'type'                   => 'required|in:item_listing,advertisement,promotional',
             'icon'                   => 'required|mimes:jpeg,jpg,png|max:7168',
             'is_global'              => 'nullable|in:0,1',
             'selected_categories'     => 'required_unless:is_global,1|array|min:1',
@@ -210,6 +210,23 @@ class PackageController extends Controller {
 
             if ($packageType === 'item_listing') {
                 $data['is_reel_allowed'] = $request->boolean('is_reel_allowed', false) ? 1 : 0;
+            }
+
+            // Promotional & Marketing Package Entitlements
+            $data['allows_promotions'] = $request->boolean('allows_promotions', false) || $packageType === 'promotional' ? 1 : 0;
+            $data['promotion_item_limit'] = $request->filled('promotion_item_limit') ? (int) $request->promotion_item_limit : null;
+            $data['allowed_promotion_types'] = $request->filled('allowed_promotion_types') ? json_encode((array) $request->allowed_promotion_types) : null;
+            $data['allows_daily_bump_up'] = $request->boolean('allows_daily_bump_up', false) ? 1 : 0;
+            $data['daily_bump_up_limit'] = $request->filled('daily_bump_up_limit') ? (int) $request->daily_bump_up_limit : null;
+            $data['allows_top_ad'] = $request->boolean('allows_top_ad', false) ? 1 : 0;
+            $data['top_ad_limit'] = $request->filled('top_ad_limit') ? (int) $request->top_ad_limit : null;
+            $data['allows_spotlight'] = $request->boolean('allows_spotlight', false) ? 1 : 0;
+            $data['spotlight_limit'] = $request->filled('spotlight_limit') ? (int) $request->spotlight_limit : null;
+
+            if ($packageType === 'promotional') {
+                $data['item_limit'] = $data['promotion_item_limit'] ? (string) $data['promotion_item_limit'] : 'unlimited';
+                $data['listing_duration_type'] = 'package';
+                $data['listing_duration_days'] = $data['duration'];
             }
 
             if ($request->hasFile('icon')) {
@@ -489,6 +506,17 @@ class PackageController extends Controller {
                 // 'refer_min_points_to_use' => $request->refer_min_points_to_use ?: null,
                 // 'refer_max_points_to_use' => $request->refer_max_points_to_use ?: null,
             ];
+
+            // Promotional & Marketing Package Entitlements
+            $data['allows_promotions'] = $request->boolean('allows_promotions', false) ? 1 : 0;
+            $data['promotion_item_limit'] = $request->filled('promotion_item_limit') ? (int) $request->promotion_item_limit : null;
+            $data['allowed_promotion_types'] = $request->filled('allowed_promotion_types') ? json_encode((array) $request->allowed_promotion_types) : null;
+            $data['allows_daily_bump_up'] = $request->boolean('allows_daily_bump_up', false) ? 1 : 0;
+            $data['daily_bump_up_limit'] = $request->filled('daily_bump_up_limit') ? (int) $request->daily_bump_up_limit : null;
+            $data['allows_top_ad'] = $request->boolean('allows_top_ad', false) ? 1 : 0;
+            $data['top_ad_limit'] = $request->filled('top_ad_limit') ? (int) $request->top_ad_limit : null;
+            $data['allows_spotlight'] = $request->boolean('allows_spotlight', false) ? 1 : 0;
+            $data['spotlight_limit'] = $request->filled('spotlight_limit') ? (int) $request->spotlight_limit : null;
 
             if ($request->hasFile('icon')) {
                 $data['icon'] = FileService::compressAndReplace($request->file('icon'), $this->uploadFolder, $package->getRawOriginal('icon'));

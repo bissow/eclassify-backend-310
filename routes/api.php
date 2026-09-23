@@ -16,6 +16,8 @@ use App\Http\Controllers\Api\PaymentApiController;
 use App\Http\Controllers\Api\ReferralApiController;
 use App\Http\Controllers\Api\ReviewApiController;
 use App\Http\Controllers\Api\SettingsApiController;
+use App\Http\Controllers\Api\OfferApiController;
+use App\Http\Controllers\Api\SellerPromotionApiController;
 use App\Http\Controllers\Api\SocialApiController;
 use App\Http\Controllers\Api\StoreApiController;
 use App\Http\Controllers\Api\UserApiController;
@@ -139,6 +141,24 @@ Route::group(['middleware' => ['auth:sanctum']], static function () {
         Route::post('generate-description', [GeminiAIController::class, 'generateDescription']);
         Route::post('generate-meta', [GeminiAIController::class, 'generateMetaDetails']);
     });
+
+    /* Promotions & Campaigns (Seller / Authenticated) */
+    Route::group(['prefix' => 'seller/promotions'], static function () {
+        Route::get('available', [SellerPromotionApiController::class, 'getAvailablePromotions']);
+        Route::get('my-items', [SellerPromotionApiController::class, 'getMyPromotionItems']);
+        Route::get('analytics', [SellerPromotionApiController::class, 'getPromotionsAnalytics']);
+        Route::get('history', [SellerPromotionApiController::class, 'getPromotionsHistory']);
+        Route::post('add-item', [SellerPromotionApiController::class, 'addPromotionItem']);
+        Route::post('update-item', [SellerPromotionApiController::class, 'updatePromotionItem']);
+        Route::post('toggle-item-status', [SellerPromotionApiController::class, 'togglePromotionItemStatus']);
+        Route::post('delete-item', [SellerPromotionApiController::class, 'deletePromotionItem']);
+    });
+
+    /* Promote this Ad (Daily Bump Up, Top Ad, Spotlight) */
+    Route::group(['prefix' => 'seller/items'], static function () {
+        Route::get('promotion-options', [SellerPromotionApiController::class, 'getAdPromotionOptions']);
+        Route::post('promote', [SellerPromotionApiController::class, 'promoteAd']);
+    });
 });
 
 /* Non-Authenticated Routes */
@@ -220,3 +240,16 @@ Route::get('get-popular-categories', [HomeScreenApiController::class, 'getPopula
 /** General APIs */
 // Banner API
 Route::get('get-banner-ads', [GeneralApiController::class, 'getBannerAds']);
+
+/* Offers, Campaigns & Promotions Module (Public) */
+Route::group(['prefix' => 'offers'], static function () {
+    Route::get('campaigns', [OfferApiController::class, 'getCampaigns']);
+    Route::get('campaign-detail', [OfferApiController::class, 'getCampaignDetail']);
+    Route::get('promotions', [OfferApiController::class, 'getPromotions']);
+    Route::get('promotion-detail', [OfferApiController::class, 'getPromotionDetail']);
+    Route::get('promotion-items', [OfferApiController::class, 'getPromotionItems']);
+    Route::get('flash-sales', [OfferApiController::class, 'getFlashSales']);
+    Route::get('clearance-sales', [OfferApiController::class, 'getClearanceSales']);
+    Route::get('deals-of-the-day', [OfferApiController::class, 'getDealsOfTheDay']);
+    Route::get('spotlight-ads', [OfferApiController::class, 'getSpotlightAds']);
+});

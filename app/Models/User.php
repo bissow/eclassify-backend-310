@@ -175,6 +175,18 @@ class User extends Authenticatable {
         return $this->hasMany(Item::class);
     }
 
+    public function user_purchased_packages() {
+        return $this->hasMany(UserPurchasedPackage::class);
+    }
+
+    public function ad_promotions() {
+        return $this->hasMany(ItemAdPromotion::class);
+    }
+
+    public function promotion_items() {
+        return $this->hasMany(PromotionItem::class);
+    }
+
     public function store() {
         return $this->hasOne(Store::class);
     }

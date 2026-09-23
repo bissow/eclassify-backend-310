@@ -74,11 +74,11 @@
                                     <ul class="list-unstyled mb-0 small">
                                         <li class="mb-2">
                                             <i class="ph ph-dot-outline text-primary me-1"></i>
-                                            <strong>{{ __('Is Verified:') }}</strong> 1 = {{ __('Verified (Locked)'), 0 = {{ __('Unverified') }}
+                                            <strong>{{ __('Is Verified:') }}</strong> 1 = {{ __('Verified (Locked)') }}, 0 = {{ __('Unverified') }}
                                         </li>
                                         <li class="mb-2">
                                             <i class="ph ph-dot-outline text-primary me-1"></i>
-                                            <strong>{{ __('Status:') }}</strong> 1 = {{ __('Active'), 0 = {{ __('Inactive') }}
+                                            <strong>{{ __('Status:') }}</strong> 1 = {{ __('Active') }}, 0 = {{ __('Inactive') }}
                                         </li>
                                         <li class="mb-2">
                                             <i class="ph ph-dot-outline text-primary me-1"></i>

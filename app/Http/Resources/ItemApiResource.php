@@ -222,6 +222,7 @@ class ItemApiResource extends ResourceCollection
                     $row['clicks'] = $item->clicks;
                     $row['translations'] = $item->relationLoaded('translations') ? $item->translations : null;
                     $row['custom_fields'] = $item->relationLoaded('item_custom_field_values') ? $this->buildCustomFields($item, $currentLangId, $defaultLangId) : [];
+                    $row['active_promotions'] = $item->active_promotions;
                 } else {
                     $row['is_liked'] = $isLiked;
                 }
@@ -247,6 +248,7 @@ class ItemApiResource extends ResourceCollection
                     $row['views'] = $item->clicks;
                     $row['likes'] = $item->favourites->count();
                     $row['is_my_listing'] = true;
+                    $row['active_promotions'] = $item->active_promotions;
                 }
                 if ($item->relationLoaded('user')) {
                     $row['user'] = $item->user;
