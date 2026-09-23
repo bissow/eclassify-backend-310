@@ -23,54 +23,57 @@ class InstallerController extends Controller {
             $app_url = (string)url('/');
             $app_url = preg_replace('#^https?://#i', '', $app_url);
 
-            $curl = curl_init();
-           curl_setopt_array($curl, array(
-                CURLOPT_URL            => 'https://validator.wrteam.in/eclassify_validator?purchase_code=' . $request->input('purchase_code') . '&domain_url=' . $app_url,
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_MAXREDIRS      => 10,
-                CURLOPT_FOLLOWLOCATION => true,
-                CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
-                CURLOPT_CUSTOMREQUEST  => 'GET',
-                CURLOPT_IPRESOLVE      => CURL_IPRESOLVE_V4
-            ));
-            $response = curl_exec($curl);
-            $curlError = curl_error($curl);
-            $curlErrno = curl_errno($curl);
-            $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-            curl_close($curl);
+        //     $curl = curl_init();
+        //    curl_setopt_array($curl, array(
+        //         CURLOPT_URL            => 'https://validator.wrteam.in/eclassify_validator?purchase_code=' . $request->input('purchase_code') . '&domain_url=' . $app_url,
+        //         CURLOPT_RETURNTRANSFER => true,
+        //         CURLOPT_MAXREDIRS      => 10,
+        //         CURLOPT_FOLLOWLOCATION => true,
+        //         CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
+        //         CURLOPT_CUSTOMREQUEST  => 'GET',
+        //         CURLOPT_IPRESOLVE      => CURL_IPRESOLVE_V4
+        //     ));
+        //     $response = curl_exec($curl);
+        //     $curlError = curl_error($curl);
+        //     $curlErrno = curl_errno($curl);
+        //     $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        //     curl_close($curl);
 
-            if ($response === false || $curlError) {
-                return view('vendor.installer.steps.purchase-code', [
-                    'error' => $this->curlErrorMessage($curlErrno, $curlError),
-                ]);
-            }
+        //     if ($response === false || $curlError) {
+        //         return view('vendor.installer.steps.purchase-code', [
+        //             'error' => $this->curlErrorMessage($curlErrno, $curlError),
+        //         ]);
+        //     }
 
-            if (in_array($httpCode, [403, 429, 451], true)) {
-                return view('vendor.installer.steps.purchase-code', [
-                    'error' => 'The validation server rejected the request from your server\'s IP address '
-                        . '(HTTP ' . $httpCode . '). Your hosting provider\'s IP may be blocked by our firewall/WAF, or you are being rate-limited. '
-                        . 'Please <a href="https://www.wrteam.in/contact-us" target="_blank" class="underline">contact support</a> '
-                        . 'with your server IP so we can whitelist it.',
-                ]);
-            }
+        //     if (in_array($httpCode, [403, 429, 451], true)) {
+        //         return view('vendor.installer.steps.purchase-code', [
+        //             'error' => 'The validation server rejected the request from your server\'s IP address '
+        //                 . '(HTTP ' . $httpCode . '). Your hosting provider\'s IP may be blocked by our firewall/WAF, or you are being rate-limited. '
+        //                 . 'Please <a href="https://www.wrteam.in/contact-us" target="_blank" class="underline">contact support</a> '
+        //                 . 'with your server IP so we can whitelist it.',
+        //         ]);
+        //     }
 
-            $response = json_decode($response, true);
-            if (!is_array($response) || !array_key_exists('error', $response)) {
-                return view('vendor.installer.steps.purchase-code', [
-                    'error' => 'Received an unexpected response from the validation server. Please try again or '
-                        . '<a href="https://www.wrteam.in/contact-us" target="_blank" class="underline">contact support</a>.',
-                ]);
-            }
+        //     $response = json_decode($response, true);
+        //     if (!is_array($response) || !array_key_exists('error', $response)) {
+        //         return view('vendor.installer.steps.purchase-code', [
+        //             'error' => 'Received an unexpected response from the validation server. Please try again or '
+        //                 . '<a href="https://www.wrteam.in/contact-us" target="_blank" class="underline">contact support</a>.',
+        //         ]);
+        //     }
 
-            if (!empty($response['error'])) {
-                $message = $response['message'] ?? 'Validation failed.';
-                $message .= ' If this purchase code is already registered to another domain, you can reset it here: '
-                    . '<a href="https://www.wrteam.in/reset-purchase-code" target="_blank" class="underline">Reset purchase code</a>.';
-                return view('installer::steps.purchase-code', ['error' => $message]);
-            }
+        //     if (!empty($response['error'])) {
+        //         $message = $response['message'] ?? 'Validation failed.';
+        //         $message .= ' If this purchase code is already registered to another domain, you can reset it here: '
+        //             . '<a href="https://www.wrteam.in/reset-purchase-code" target="_blank" class="underline">Reset purchase code</a>.';
+        //         return view('installer::steps.purchase-code', ['error' => $message]);
+        //     }
 
-            EnvSet::setKey('APPSECRET', $request->input('purchase_code'));
-            EnvSet::save();
+        //     EnvSet::setKey('APPSECRET', $request->input('purchase_code'));
+        //     EnvSet::save();
+
+        $this->setEnvValue('APPSECRET', $request->input('purchase_code'));
+        
             return redirect()->route('install.php-function.index');
         } catch (Exception $e) {
             $values = [
@@ -79,6 +82,36 @@ class InstallerController extends Controller {
             return view('vendor.installer.steps.purchase-code', ['values' => $values, 'error' => $e->getMessage()]);
         }
     }
+
+    private function setEnvValue(string $key, string $value): void
+    {
+        $envPath = base_path('.env');
+
+        if (!file_exists($envPath)) {
+            throw new Exception('.env file does not exist.');
+        }
+
+        $env = file_get_contents($envPath);
+
+        $escapedValue = '"' . addcslashes($value, '"\\') . '"';
+
+        $pattern = '/^' . preg_quote($key, '/') . '=.*$/m';
+
+        if (preg_match($pattern, $env)) {
+            $env = preg_replace(
+                $pattern,
+                $key . '=' . $escapedValue,
+                $env
+            );
+        } else {
+            $env = rtrim($env) . PHP_EOL . $key . '=' . $escapedValue . PHP_EOL;
+        }
+
+        if (file_put_contents($envPath, $env) === false) {
+            throw new Exception('Unable to write to .env file.');
+        }
+    }
+
 
     private function curlErrorMessage(int $errno, string $curlError): string
     {

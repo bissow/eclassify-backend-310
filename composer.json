@@ -14,7 +14,6 @@
         "ext-zip": "*",
         "blade-ui-kit/blade-icons": "^1.8",
         "cerbero/json-parser": "^1.1",
-        "dacoto/laravel-wizard-installer": "^2.1",
         "dedoc/scramble": "^0.13.17",
         "devaslanphp/auto-translate": "*",
         "doctrine/dbal": "^3.6",
