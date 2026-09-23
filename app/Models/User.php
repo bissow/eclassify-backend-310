@@ -94,6 +94,13 @@ class User extends Authenticatable {
         'firebase_id',
         'profile',
         'address',
+        'latitude',
+        'longitude',
+        'country',
+        'state',
+        'city',
+        'area_id',
+        'has_store',
         'notification',
         'country_code',
         'show_personal_details',
@@ -122,6 +129,9 @@ class User extends Authenticatable {
      */
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'has_store'         => 'boolean',
+        'latitude'          => 'float',
+        'longitude'         => 'float',
     ];
 
     protected $appends = [
@@ -163,6 +173,18 @@ class User extends Authenticatable {
 
     public function items() {
         return $this->hasMany(Item::class);
+    }
+
+    public function store() {
+        return $this->hasOne(Store::class);
+    }
+
+    public function area() {
+        return $this->belongsTo(Area::class);
+    }
+
+    public function isStore(): bool {
+        return (bool) ($this->has_store || $this->store()->exists());
     }
 
     public function sellerReview() {

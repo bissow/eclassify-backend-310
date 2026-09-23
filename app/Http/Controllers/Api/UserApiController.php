@@ -43,7 +43,7 @@ class UserApiController extends BaseApiController
             $user = User::withCount([
                 'followers as followers_count',
                 'following as following_count'
-            ])->with('fcm_tokens')->find($auth->id);
+            ])->with(['fcm_tokens', 'store', 'area'])->find($auth->id);
 
             $user->total_seller_unread_chat_count = ItemOffer::where('seller_id', $auth->id)
                 ->withCount(['sellerChat as unread_chat_count' => function ($q) use ($auth) {
@@ -83,6 +83,12 @@ class UserApiController extends BaseApiController
                 ],
                 'fcm_id' => 'nullable',
                 'address' => 'nullable',
+                'latitude' => 'nullable|numeric|between:-90,90',
+                'longitude' => 'nullable|numeric|between:-180,180',
+                'country' => 'nullable|string|max:191',
+                'state' => 'nullable|string|max:191',
+                'city' => 'nullable|string|max:191',
+                'area_id' => 'nullable|integer|exists:areas,id',
                 'show_personal_details' => 'boolean',
                 'country_code' => 'nullable|string',
                 'region_code' => 'nullable|string',
@@ -100,7 +106,11 @@ class UserApiController extends BaseApiController
             }
 
             // Allow specific fields to be updated in user data
-            $allowedFields = ['name', 'mobile', 'address', 'show_personal_details', 'country_code', 'region_code'];
+            $allowedFields = [
+                'name', 'mobile', 'address', 'latitude', 'longitude', 
+                'country', 'state', 'city', 'area_id', 'show_personal_details', 
+                'country_code', 'region_code'
+            ];
             if ($app_user->type !== 'google') {
                 $allowedFields[] = 'email';
             }
@@ -173,9 +183,9 @@ class UserApiController extends BaseApiController
 
         try {
             $seller = User::withCount([
-            'followers as followers_count',
-            'following as following_count'
-            ])->findOrFail($request->id);
+                'followers as followers_count',
+                'following as following_count'
+            ])->with(['store', 'area'])->findOrFail($request->id);
 
             $ratingQuery = SellerRating::where('seller_id', $seller->id)->with('buyer:id,name,profile');
             $totalOneRatings = $ratingQuery->clone()->where('ratings', 1)->count();

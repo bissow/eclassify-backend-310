@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\ReferralApiController;
 use App\Http\Controllers\Api\ReviewApiController;
 use App\Http\Controllers\Api\SettingsApiController;
 use App\Http\Controllers\Api\SocialApiController;
+use App\Http\Controllers\Api\StoreApiController;
 use App\Http\Controllers\Api\UserApiController;
 use App\Http\Controllers\Api\VerificationApiController;
 use App\Http\Controllers\GeminiAIController;
@@ -45,6 +46,11 @@ Route::group(['middleware' => ['auth:sanctum']], static function () {
     Route::post('update-profile', [UserApiController::class, 'updateProfile']);
     Route::get('get-user-info', [UserApiController::class, 'getUser']);
     Route::get('get-notification-list', [UserApiController::class, 'getNotificationList']);
+
+    /* Store Module */
+    Route::post('setup-store', [StoreApiController::class, 'setupStore']);
+    Route::get('get-my-store', [StoreApiController::class, 'getMyStore']);
+    Route::post('toggle-store-status', [StoreApiController::class, 'toggleStoreStatus']);
 
     /* Item Module */
     Route::get('my-items', [ItemApiController::class, 'getMyItems']);
@@ -146,6 +152,11 @@ Route::get('verify-otp', [AuthApiController::class, 'verifyOtp']);
 /* User Module */
 Route::get('get-seller', [UserApiController::class, 'getSeller']);
 Route::get('get-seller-slug', [UserApiController::class, 'getSellerSlug']);
+
+/* Store Module */
+Route::get('get-stores', [StoreApiController::class, 'getStores']);
+Route::get('get-store-detail', [StoreApiController::class, 'getStoreDetail']);
+Route::get('get-store-slugs', [StoreApiController::class, 'getStoreSlugs']);
 
 /* Social Module */
 Route::get('followers', [SocialApiController::class, 'getFollowers']);

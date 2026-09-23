@@ -158,13 +158,18 @@
                     'seller-verification-field-update', 'seller-verification-field-delete',
                     'seller-verification-request-list', 'seller-verification-request-create',
                     'seller-verification-request-update', 'seller-verification-request-delete', 'seller-review-list',
-                    'seller-review-update', 'seller-review-delete'])
+                    'seller-review-update', 'seller-review-delete', 'store-list', 'store-update', 'store-delete'])
                     <li class="sidebar-item has-sub">
                         <a href="#" class='sidebar-link'>
                             <i class="ph ph-user-focus"></i>
                             <span class="menu-item">{{ __('Seller Management') }}</span>
                         </a>
                         <ul class="submenu" style="padding-inline-start: 0rem">
+                            @canany(['store-list', 'store-update', 'store-delete'])
+                                <li class="submenu-item">
+                                    <a href="{{ route('stores.index') }}">{{ __('Stores & Shops') }}</a>
+                                </li>
+                            @endcanany
                             @canany(['seller-verification-field-list', 'seller-verification-field-create',
                                 'seller-verification-field-update', 'seller-verification-field-delete'])
                                 <li class="submenu-item">

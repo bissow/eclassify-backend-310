@@ -64,6 +64,7 @@ class SystemUpgradeSeeder extends Seeder
                 'only' => ['list', 'update']
             ],
             'seller-review' => '*',
+            'store' => '*',
             'user-queries' => [
                 'only' => ['list']
             ],
