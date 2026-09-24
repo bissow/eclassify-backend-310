@@ -34,38 +34,73 @@ class HelperService
 
     public static function changeEnv($updateData = []): bool
     {
-        if (count($updateData) > 0) {
-            // Read .env-file
-            $env = file_get_contents(base_path() . '/.env');
-            // Split string on every " " and write into array
-            //            $env = explode(PHP_EOL, $env);
+        if (empty($updateData)) {
+            return false;
+        }
+
+        $envPath = function_exists('base_path') ? base_path('.env') : null;
+        if (! $envPath || ! file_exists($envPath)) {
+            $envPath = function_exists('app') && method_exists(app(), 'environmentFilePath') ? app()->environmentFilePath() : $envPath;
+        }
+
+        // If .env does not exist, try to initialize it from .env.example if available
+        if ((! $envPath || ! file_exists($envPath)) && function_exists('base_path')) {
+            $examplePath = base_path('.env.example');
+            if (file_exists($examplePath) && $envPath && is_writable(dirname($envPath))) {
+                @copy($examplePath, $envPath);
+            }
+        }
+
+        if (! $envPath || ! file_exists($envPath)) {
+            Log::warning("HelperService::changeEnv: .env file does not exist at " . ($envPath ?? 'base_path/.env'));
+            return false;
+        }
+
+        if (! is_writable($envPath)) {
+            Log::warning("HelperService::changeEnv: .env file is not writable at {$envPath}");
+            return false;
+        }
+
+        try {
+            // Read .env-file safely
+            $env = @file_get_contents($envPath);
+            if ($env === false) {
+                return false;
+            }
+
+            // Split string on every newline
             $env = preg_split('/\r\n|\r|\n/', $env);
             $env_array = [];
             foreach ($env as $env_value) {
                 if (empty($env_value)) {
-                    // Add and Empty Line
+                    // Add an Empty Line
                     $env_array[] = '';
 
                     continue;
                 }
 
                 $entry = explode('=', $env_value, 2);
-                $env_array[$entry[0]] = $entry[0] . '="' . str_replace('"', '', $entry[1]) . '"';
+                if (isset($entry[1])) {
+                    $env_array[$entry[0]] = $entry[0] . '="' . str_replace('"', '', $entry[1]) . '"';
+                } else {
+                    $env_array[$entry[0]] = $entry[0];
+                }
             }
 
             foreach ($updateData as $key => $value) {
-                $env_array[$key] = $key . '="' . str_replace('"', '', $value) . '"';
+                $env_array[$key] = $key . '="' . str_replace('"', '', (string)$value) . '"';
             }
             // Turn the array back to a String
             $env = implode("\n", $env_array);
 
             // And overwrite the .env with the new data
-            file_put_contents(base_path() . '/.env', $env);
+            @file_put_contents($envPath, $env);
 
             return true;
+        } catch (Throwable $e) {
+            Log::warning("HelperService::changeEnv failed: " . $e->getMessage());
+            return false;
         }
-
-        return false;
     }
 
     /**

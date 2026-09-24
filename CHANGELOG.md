@@ -18,9 +18,12 @@ Introduced a native **Test / Default OTP** service provider into the **OTP Provi
   - Added option `<option value="test">Test / Default OTP (123456)</option>` to the `otp_service_provider` dropdown.
   - Added a dedicated `#test-settings` configuration section explaining test mode and offering an optional configurable `test_otp_code` field (defaulting to `123456`).
   - Updated JavaScript `toggleOtpProviders()` function to show/hide the test settings panel accordingly.
+- **`app/Services/HelperService.php`**:
+  - Hardened `changeEnv()` to safely verify `.env` file existence, auto-initialize from `.env.example` if available, check write permissions, and catch exceptions without crashing when running in Docker/containerized VPS environments where `.env` may be missing or read-only.
 - **`app/Http/Controllers/SettingController.php`**:
   - Expanded validation rules for `otp_service_provider` to accept `firebase,twilio,2factor,test,test_otp,default`.
   - Added validation for `test_otp_code` (`nullable|string|digits:6`).
+  - Added check in `store()` so email environment settings are only synchronized to `.env` when email fields are actually present in the request, preventing unintended `.env` writes when saving OTP provider settings.
 - **`app/Http/Controllers/Api/AuthApiController.php`**:
   - **`getOtp()`**: Added test provider handler. Generates the default test OTP (`123456` or custom configured value), stores a secure `bcrypt` hash in the `number_otps` table with a 2-hour expiration window, logs the issuance, and immediately returns a success response.
   - **`verifyOtp()`**: Added test provider handler. Verifies the input code against `123456` (or database hash). Upon valid verification, automatically creates a new user or retrieves existing user, issues a Sanctum Bearer token, and completes authentication.

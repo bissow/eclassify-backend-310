@@ -295,23 +295,34 @@ class SettingController extends Controller
                 ]);
             }
 
-            // Update .env file for email settings
-            $emailSettings = [
-                'MAIL_MAILER' => $inputs['mail_mailer'] ?? config('mail.mailer'),
-                'MAIL_HOST' => $inputs['mail_host'] ?? config('mail.host'),
-                'MAIL_PORT' => $inputs['mail_port'] ?? config('mail.port'),
-                'MAIL_USERNAME' => $inputs['mail_username'] ?? config('mail.username'),
-                'MAIL_PASSWORD' => $inputs['mail_password'] ?? config('mail.password'),
-                'MAIL_ENCRYPTION' => $inputs['mail_encryption'] ?? config('mail.encryption'),
-                'MAIL_FROM_ADDRESS' => $inputs['mail_from_address'] ?? config('mail.from.address'),
-            ];
-            $filteredSettings = array_filter($emailSettings, function ($value) {
-                return ! is_null($value) && $value !== '';
-            });
+            // Update .env file for email settings only if mail settings are provided in the request
+            $emailKeys = ['mail_mailer', 'mail_host', 'mail_port', 'mail_username', 'mail_password', 'mail_encryption', 'mail_from_address'];
+            $hasEmailInputs = false;
+            foreach ($emailKeys as $k) {
+                if (array_key_exists($k, $inputs)) {
+                    $hasEmailInputs = true;
+                    break;
+                }
+            }
 
-            // Only update env if there's something to update
-            if (! empty($filteredSettings)) {
-                HelperService::changeEnv($filteredSettings);
+            if ($hasEmailInputs) {
+                $emailSettings = [
+                    'MAIL_MAILER' => $inputs['mail_mailer'] ?? config('mail.mailer'),
+                    'MAIL_HOST' => $inputs['mail_host'] ?? config('mail.host'),
+                    'MAIL_PORT' => $inputs['mail_port'] ?? config('mail.port'),
+                    'MAIL_USERNAME' => $inputs['mail_username'] ?? config('mail.username'),
+                    'MAIL_PASSWORD' => $inputs['mail_password'] ?? config('mail.password'),
+                    'MAIL_ENCRYPTION' => $inputs['mail_encryption'] ?? config('mail.encryption'),
+                    'MAIL_FROM_ADDRESS' => $inputs['mail_from_address'] ?? config('mail.from.address'),
+                ];
+                $filteredSettings = array_filter($emailSettings, function ($value) {
+                    return ! is_null($value) && $value !== '';
+                });
+
+                // Only update env if there's something to update
+                if (! empty($filteredSettings)) {
+                    HelperService::changeEnv($filteredSettings);
+                }
             }
 
             if (! empty($inputs['otp_service_provider']) && $inputs['otp_service_provider'] === 'twilio') {
