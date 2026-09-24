@@ -424,21 +424,32 @@ class SettingController extends Controller
                 ];
             }
             Setting::upsert($data, 'name', ['value']);
-            // Service worker file will be copied here
-            File::copy(public_path('assets/dummy-firebase-messaging-sw.js'), public_path('firebase-messaging-sw.js'));
-            $serviceWorkerFile = file_get_contents(public_path('firebase-messaging-sw.js'));
 
-            $updateFileStrings = [
-                'apiKeyValue' => '"' . $request->apiKey . '"',
-                'authDomainValue' => '"' . $request->authDomain . '"',
-                'projectIdValue' => '"' . $request->projectId . '"',
-                'storageBucketValue' => '"' . $request->storageBucket . '"',
-                'messagingSenderIdValue' => '"' . $request->messagingSenderId . '"', // Fixed: use messagingSenderId, not measurementId
-                'appIdValue' => '"' . $request->appId . '"',
-                'measurementIdValue' => '"' . $request->measurementId . '"',
-            ];
-            $serviceWorkerFile = str_replace(array_keys($updateFileStrings), $updateFileStrings, $serviceWorkerFile);
-            file_put_contents(public_path('firebase-messaging-sw.js'), $serviceWorkerFile);
+            // Safely update service worker file if filesystem permissions allow
+            try {
+                $dummyPath = public_path('assets/dummy-firebase-messaging-sw.js');
+                $targetPath = public_path('firebase-messaging-sw.js');
+
+                if (File::exists($dummyPath)) {
+                    $serviceWorkerFile = File::get($dummyPath);
+
+                    $updateFileStrings = [
+                        'apiKeyValue' => '"' . $request->apiKey . '"',
+                        'authDomainValue' => '"' . $request->authDomain . '"',
+                        'projectIdValue' => '"' . $request->projectId . '"',
+                        'storageBucketValue' => '"' . $request->storageBucket . '"',
+                        'messagingSenderIdValue' => '"' . $request->messagingSenderId . '"',
+                        'appIdValue' => '"' . $request->appId . '"',
+                        'measurementIdValue' => '"' . ($request->measurementId ?? '') . '"',
+                    ];
+                    $serviceWorkerFile = str_replace(array_keys($updateFileStrings), $updateFileStrings, $serviceWorkerFile);
+
+                    @File::put($targetPath, $serviceWorkerFile);
+                }
+            } catch (Throwable $fileException) {
+                Log::warning('Settings Controller: Unable to write firebase-messaging-sw.js: ' . $fileException->getMessage());
+            }
+
             CachingService::removeCache(config('constants.CACHE.SETTINGS'));
             ResponseService::successResponse('Settings Updated Successfully');
         } catch (Throwable $th) {

@@ -24,6 +24,9 @@ Introduced a native **Test / Default OTP** service provider into the **OTP Provi
   - Expanded validation rules for `otp_service_provider` to accept `firebase,twilio,2factor,test,test_otp,default`.
   - Added validation for `test_otp_code` (`nullable|string|digits:6`).
   - Added check in `store()` so email environment settings are only synchronized to `.env` when email fields are actually present in the request, preventing unintended `.env` writes when saving OTP provider settings.
+  - Hardened `updateFirebaseSettings()` to safely read dummy template, replace tokens, and write `public/firebase-messaging-sw.js` inside a try/catch with permission resilience, preventing admin panel failure when web server has restricted write permissions on `public/`.
+- **`routes/web.php`**:
+  - Added dynamic fallback route for `/firebase-messaging-sw.js` to render the service worker on-the-fly directly from database Firebase settings if the static file cannot be created or accessed on disk.
 - **`app/Http/Controllers/Api/AuthApiController.php`**:
   - **`getOtp()`**: Added test provider handler. Generates the default test OTP (`123456` or custom configured value), stores a secure `bcrypt` hash in the `number_otps` table with a 2-hour expiration window, logs the issuance, and immediately returns a success response.
   - **`verifyOtp()`**: Added test provider handler. Verifies the input code against `123456` (or database hash). Upon valid verification, automatically creates a new user or retrieves existing user, issues a Sanctum Bearer token, and completes authentication.

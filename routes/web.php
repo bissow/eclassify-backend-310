@@ -764,3 +764,36 @@ Route::get('/run-scheduler', function () {
 //         'env_queue_connection' => env('QUEUE_CONNECTION', 'not set'),
 //     ]);
 // });
+
+Route::get('/firebase-messaging-sw.js', function () {
+    $targetPath = public_path('firebase-messaging-sw.js');
+    if (file_exists($targetPath)) {
+        return response()->file($targetPath, ['Content-Type' => 'application/javascript']);
+    }
+
+    $dummyPath = public_path('assets/dummy-firebase-messaging-sw.js');
+    if (! file_exists($dummyPath)) {
+        return response('// Firebase messaging service worker dummy not found', 404, ['Content-Type' => 'application/javascript']);
+    }
+
+    $sw = file_get_contents($dummyPath);
+    $settings = Setting::whereIn('name', [
+        'apiKey', 'authDomain', 'projectId', 'storageBucket', 'messagingSenderId', 'appId', 'measurementId'
+    ])->pluck('value', 'name')->toArray();
+
+    $replacements = [
+        'apiKeyValue' => '"' . ($settings['apiKey'] ?? '') . '"',
+        'authDomainValue' => '"' . ($settings['authDomain'] ?? '') . '"',
+        'projectIdValue' => '"' . ($settings['projectId'] ?? '') . '"',
+        'storageBucketValue' => '"' . ($settings['storageBucket'] ?? '') . '"',
+        'messagingSenderIdValue' => '"' . ($settings['messagingSenderId'] ?? '') . '"',
+        'appIdValue' => '"' . ($settings['appId'] ?? '') . '"',
+        'measurementIdValue' => '"' . ($settings['measurementId'] ?? '') . '"',
+    ];
+
+    $content = str_replace(array_keys($replacements), $replacements, $sw);
+    return response($content, 200, [
+        'Content-Type' => 'application/javascript',
+        'Service-Worker-Allowed' => '/',
+    ]);
+});
