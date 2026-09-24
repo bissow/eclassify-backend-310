@@ -80,6 +80,7 @@ class DefaultSettingService {
             ['name' => 'mail_from_address', 'value' => 'hello@example.com', 'type' => 'string'],
             ['name' => 'depp_link_scheme', 'value' => 'eclassify', 'type' => 'string'],
             ['name' => 'otp_service_provider', 'value' => 'firebase', 'type' => 'string'],
+            ['name' => 'test_otp_code', 'value' => '123456', 'type' => 'string'],
             ['name' => 'account_holder_name', 'value' => '', 'type' => 'string'],
             ['name' => 'bank_name', 'value' => '', 'type' => 'string'],
             ['name' => 'account_number', 'value' => '', 'type' => 'string'],

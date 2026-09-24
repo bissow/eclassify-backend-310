@@ -46,6 +46,10 @@
                                     {{ ($settings['otp_service_provider'] ?? '') == '2factor' ? 'selected' : '' }}>
                                     {{ __('2Factor') }}
                                 </option>
+                                <option value="test"
+                                    {{ ($settings['otp_service_provider'] ?? '') == 'test' ? 'selected' : '' }}>
+                                    {{ __('Test / Default OTP (123456)') }}
+                                </option>
                             </select>
                         </div>
                     </div>
@@ -106,6 +110,24 @@
                         </div>
                     </div>
 
+                    {{-- ================= TEST OTP SETTINGS ================= --}}
+                    <div class="col-12 mt-4 p-4 row bg-light d-none" id="test-settings">
+                        <h5>{{ __('Test OTP Settings') }}</h5>
+                        <p class="text-muted">
+                            {{ __('When this provider is selected, no external SMS gateway is needed. Users can register, log in, or reset passwords using the default test OTP (123456) on both the website and mobile app.') }}
+                        </p>
+
+                        <div class="form-group row mt-3">
+                            <div class="col-md-6">
+                                <label class="form-label">{{ __('Test Default OTP') }}</label>
+                                <input type="text" name="test_otp_code" class="form-control"
+                                    placeholder="123456" value="{{ $settings['test_otp_code'] ?? '123456' }}"
+                                    maxlength="6" pattern="[0-9]{6}">
+                                <small class="text-muted">{{ __('Default: 123456. Any 6-digit numeric OTP code.') }}</small>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             </div>
 
@@ -125,6 +147,10 @@
 
             document.getElementById('twilio-settings').classList.add('d-none');
             document.getElementById('twofactor-settings').classList.add('d-none');
+            let testSettings = document.getElementById('test-settings');
+            if (testSettings) {
+                testSettings.classList.add('d-none');
+            }
 
             if (provider === 'twilio') {
                 document.getElementById('twilio-settings').classList.remove('d-none');
@@ -132,6 +158,12 @@
 
             if (provider === '2factor') {
                 document.getElementById('twofactor-settings').classList.remove('d-none');
+            }
+
+            if (provider === 'test' || provider === 'test_otp' || provider === 'default') {
+                if (testSettings) {
+                    testSettings.classList.remove('d-none');
+                }
             }
         }
 

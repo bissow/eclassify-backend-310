@@ -2019,5 +2019,11 @@
     "Promotional offer updated successfully!": "Promotional offer updated successfully!",
     "Currently Active": "Currently Active",
     "This boost is currently active on this advertisement. Promoting again will extend or replace the active boost duration.": "This boost is currently active on this advertisement. Promoting again will extend or replace the active boost duration.",
-    "Extend / Replace Boost": "Extend / Replace Boost"
+    "Extend / Replace Boost": "Extend / Replace Boost",
+    "Test / Default OTP (123456)": "Test / Default OTP (123456)",
+    "Test OTP Settings": "Test OTP Settings",
+    "When this provider is selected, no external SMS gateway is needed. Users can register, log in, or reset passwords using the default test OTP (123456) on both the website and mobile app.": "When this provider is selected, no external SMS gateway is needed. Users can register, log in, or reset passwords using the default test OTP (123456) on both the website and mobile app.",
+    "Test Default OTP": "Test Default OTP",
+    "Default: 123456. Any 6-digit numeric OTP code.": "Default: 123456. Any 6-digit numeric OTP code.",
+    "Test OTP Code": "Test OTP Code"
 }

@@ -93,6 +93,7 @@ return [
         ['name' => 'mail_from_address', 'value' => 'hello@example.com', 'type' => 'string'],
         ['name' => 'depp_link_scheme', 'value' => '', 'type' => 'string'],
         ['name' => 'otp_service_provider', 'value' => '', 'type' => 'string'],
+        ['name' => 'test_otp_code', 'value' => '123456', 'type' => 'string'],
     ],
 
     'ITEMS' => [

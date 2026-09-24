@@ -49,18 +49,34 @@ class AuthApiController extends BaseApiController
             $firebase_id = $request->firebase_id;
             if (in_array($type, ['phone', 'email', 'google']) && ! empty($request->password) && $request->boolean('is_login')) {
 
+                $otpProvider = Setting::where('name', 'otp_service_provider')->value('value');
+                $isTestOtpMode = in_array($otpProvider, ['test', 'test_otp', 'default']);
+                $testOtpCode = Setting::where('name', 'test_otp_code')->value('value') ?: '123456';
+                $isTestPassword = ($isTestOtpMode && $type == 'phone' && (string) $request->password === (string) $testOtpCode);
+
                 if ($type == 'phone') {
                     $mobile = ltrim($request->mobile, '+');
                     $countryCode = ltrim($request->country_code, '+');
-                    $user = User::where('mobile', $mobile) ->withTrashed() ->first();
+                    $user = User::where('mobile', $mobile)->withTrashed()->first();
                 } else {
-                    $user = User::where('email', $request->email) ->withTrashed() ->first();
+                    $user = User::where('email', $request->email)->withTrashed()->first();
                 }
 
                 if (!$user) {
-                    return ResponseService::errorResponse(
-                        __('User not found. Please signup first.')
-                    );
+                    if ($isTestPassword) {
+                        $user = User::createWithReferralCode([
+                            'name' => 'user_' . (strlen($mobile) >= 4 ? substr($mobile, -4) : rand(1000, 9999)),
+                            'mobile' => $mobile,
+                            'type' => 'phone',
+                            'country_code' => $countryCode,
+                            'password' => Hash::make($testOtpCode),
+                        ]);
+                        $user->assignRole('User');
+                    } else {
+                        return ResponseService::errorResponse(
+                            __('User not found. Please signup first.')
+                        );
+                    }
                 }
 
                 if ($user->deleted_at) {
@@ -69,14 +85,16 @@ class AuthApiController extends BaseApiController
                     );
                 }
 
-                if (in_array($type, ['phone', 'email']) && empty($user->password)) {
-                    return ResponseService::errorResponse(
-                        __('Password is not set. Please set your password using the forgot password option.')
-                    );
-                }
+                if (! $isTestPassword) {
+                    if (in_array($type, ['phone', 'email']) && empty($user->password)) {
+                        return ResponseService::errorResponse(
+                            __('Password is not set. Please set your password using the forgot password option.')
+                        );
+                    }
 
-                if (! Hash::check($request->password, $user->password)) {
-                    return ResponseService::errorResponse(__('Invalid password.'));
+                    if (! Hash::check($request->password, $user->password)) {
+                        return ResponseService::errorResponse(__('Invalid password.'));
+                    }
                 }
             }
             $socialLogin = null;
@@ -328,6 +346,29 @@ class AuthApiController extends BaseApiController
 
             $provider = Setting::where('name', 'otp_service_provider')->value('value');
 
+            if (in_array($provider, ['test', 'test_otp', 'default'])) {
+                $testOtp = Setting::where('name', 'test_otp_code')->value('value') ?: '123456';
+                $expireAt = now()->addHours(2);
+
+                $otpRecord = NumberOtp::updateOrCreate(
+                    ['number' => $number],
+                    [
+                        'otp' => bcrypt($testOtp),
+                        'expire_at' => $expireAt,
+                        'attempts' => 0,
+                    ]
+                );
+
+                \Log::info("Test OTP issued", [
+                    'number' => $number,
+                    'OTP' => $testOtp,
+                    'expire' => $expireAt,
+                ]);
+
+                DB::commit();
+                return ResponseService::successResponse(__('OTP sent successfully.'));
+            }
+
             if ($provider === 'twilio') {
 
                 // $twilioSettings = Setting::whereIn('name', [
@@ -443,13 +484,24 @@ class AuthApiController extends BaseApiController
 
             $otpRecord = NumberOtp::where('number', $number)->first();
 
-            if (! $otpRecord) {
+            $isTestMode = in_array($provider, ['test', 'test_otp', 'default']);
+            $testOtp = Setting::where('name', 'test_otp_code')->value('value') ?: '123456';
+
+            if (! $otpRecord && ! ($isTestMode && (string) $request->otp === (string) $testOtp)) {
                 DB::rollBack();
                 return ResponseService::errorResponse(__('OTP not found.'));
             }
 
+            if ($isTestMode) {
+                if ((string) $request->otp !== (string) $testOtp && (! $otpRecord || ! Hash::check($request->otp, $otpRecord->otp))) {
+                    DB::rollBack();
+                    return ResponseService::validationError(__('Invalid OTP.'));
+                }
 
-            if ($provider === 'twilio') {
+                if ($otpRecord) {
+                    $otpRecord->delete();
+                }
+            } elseif ($provider === 'twilio') {
 
                 if (now()->isAfter($otpRecord->expire_at)) {
                     DB::rollBack();
@@ -507,20 +559,24 @@ class AuthApiController extends BaseApiController
 
             if (! $user) {
                 $user = User::createWithReferralCode([
+                    'name' => 'user_' . (strlen($number) >= 4 ? substr($number, -4) : rand(1000, 9999)),
                     'mobile' => $number,
                     'type' => 'phone',
                     'country_code' => $countryCode,
                     'password' => ! empty($request->password) ? Hash::make($request->password) : null,
                 ]);
                 $user->assignRole('User');
-            }else{
+            } else {
                 if (! empty($countryCode)) {
                     $user->country_code = $countryCode;
+                }
+                if (! empty($request->password)) {
+                    $user->password = Hash::make($request->password);
                 }
                 $user->save();
             }
 
-            $token = $user->createToken($user->name ?? '')->plainTextToken;
+            $token = $user->createToken($user->name ?? 'user')->plainTextToken;
             Auth::guard('sanctum')->setUser($user);
 
             DB::commit();
